@@ -13,10 +13,10 @@ internal static class HostBuilderExtensions
     {
         var clientConfig = new DiscordSocketConfig();
         var interactionConfig = new InteractionServiceConfig();
+        
         configureOptions(clientConfig, interactionConfig);
 
         var client = new DiscordSocketClient(clientConfig);
-        
         var interaction = new InteractionService(client, interactionConfig);
 
         builder.ConfigureServices(services =>
@@ -34,6 +34,7 @@ internal static class HostBuilderExtensions
         Action<CommandServiceConfig> configureOptions)
     {
         var config = new CommandServiceConfig();
+        
         configureOptions(config);
 
         var commands = new CommandService(config);

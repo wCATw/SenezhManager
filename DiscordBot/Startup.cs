@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using DiscordBot.Database;
 using DiscordBot.Services;
+using DiscordBot.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +13,7 @@ using Serilog;
 
 namespace DiscordBot;
 
-internal sealed class Startup
+internal static class Startup
 {
     static Task Main(string[] args)
     {
@@ -39,7 +40,10 @@ internal sealed class Startup
                 .ConfigureCommands(options => { })
                 .ConfigureServices((context, services) =>
                 {
-                    services.AddSingleton<CommandHandler>();
+                    services.AddSingleton<IEventManagerService, EventManagerService>();
+                    services.AddSingleton<ISettingsManagerService, SettingsManagerService>();
+                    services.AddSingleton<IRegistrationService, RegistrationService>();
+                    services.AddSingleton<ICommandHandlerService, CommandHandlerService>();
     
                     services.AddDbContext<AppDbContext>(options =>
                     {
