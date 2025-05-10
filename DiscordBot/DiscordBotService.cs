@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using DiscordBot.Services.Interfaces;
+using DiscordBot.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -14,28 +14,10 @@ internal sealed class DiscordBotService(
     DiscordSocketClient client,
     InteractionService intService,
     IConfiguration config,
-    ICommandHandlerService commandHandlerService,
+    CommandHandlerService commandHandlerService,
     ILogger<DiscordBotService> logger)
     : IHostedService
 {
-    private Task Log(LogMessage message)
-    {
-        var logLevel = message.Severity switch
-        {
-            LogSeverity.Critical => LogLevel.Critical,
-            LogSeverity.Error => LogLevel.Error,
-            LogSeverity.Warning => LogLevel.Warning,
-            LogSeverity.Info => LogLevel.Information,
-            LogSeverity.Verbose => LogLevel.Debug,
-            LogSeverity.Debug => LogLevel.Trace,
-            _ => LogLevel.Information
-        };
-        
-        logger.Log(logLevel, message.Exception, $"{message.Source}: {message.Message}");
-        
-        return Task.CompletedTask;
-    }
-
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         var commands = intService;
@@ -54,5 +36,23 @@ internal sealed class DiscordBotService(
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         await client.StopAsync();
+    }
+
+    private Task Log(LogMessage message)
+    {
+        var logLevel = message.Severity switch
+        {
+            LogSeverity.Critical => LogLevel.Critical,
+            LogSeverity.Error => LogLevel.Error,
+            LogSeverity.Warning => LogLevel.Warning,
+            LogSeverity.Info => LogLevel.Information,
+            LogSeverity.Verbose => LogLevel.Debug,
+            LogSeverity.Debug => LogLevel.Trace,
+            _ => LogLevel.Information
+        };
+
+        logger.Log(logLevel, message.Exception, $"{message.Source}: {message.Message}");
+
+        return Task.CompletedTask;
     }
 }

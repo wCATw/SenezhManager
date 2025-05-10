@@ -17,9 +17,7 @@ internal sealed class CommandHandlerService(
     ILogger<CommandHandlerService> logger,
     IConfiguration config,
     ISettingsManagerService settings)
-    : ICommandHandlerService
 {
-
     public async Task InitializeAsync()
     {
         await interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), service);
@@ -30,26 +28,30 @@ internal sealed class CommandHandlerService(
         interactionService.ContextCommandExecuted += ContextCommandExecuted;
         interactionService.ComponentCommandExecuted += ComponentCommandExecuted;
         interactionService.ModalCommandExecuted += ModalCommandExecuted;
-        
+
         logger.LogInformation("Hooking commands");
     }
 
-    private async Task ComponentCommandExecuted(ComponentCommandInfo componentCommandInfo, IInteractionContext interactionContext, IResult result)
+    private async Task ComponentCommandExecuted(ComponentCommandInfo componentCommandInfo,
+        IInteractionContext interactionContext, IResult result)
     {
         await HandleResult(interactionContext, result);
     }
 
-    private async Task ModalCommandExecuted(ModalCommandInfo modalCommandInfo, IInteractionContext interactionContext, IResult result)
+    private async Task ModalCommandExecuted(ModalCommandInfo modalCommandInfo, IInteractionContext interactionContext,
+        IResult result)
     {
         await HandleResult(interactionContext, result);
     }
 
-    private async Task ContextCommandExecuted(ContextCommandInfo contextCommandInfo, IInteractionContext interactionContext, IResult result)
+    private async Task ContextCommandExecuted(ContextCommandInfo contextCommandInfo,
+        IInteractionContext interactionContext, IResult result)
     {
         await HandleResult(interactionContext, result);
     }
 
-    private async Task SlashCommandExecuted(SlashCommandInfo slashCommand, IInteractionContext interactionContext, IResult result)
+    private async Task SlashCommandExecuted(SlashCommandInfo slashCommand, IInteractionContext interactionContext,
+        IResult result)
     {
         await HandleResult(interactionContext, result);
     }
@@ -77,8 +79,9 @@ internal sealed class CommandHandlerService(
         {
             if (socketInteraction.Type == InteractionType.ApplicationCommand)
             {
-                await socketInteraction.GetOriginalResponseAsync().ContinueWith(async (msg) => await msg.Result.DeleteAsync());
-                
+                await socketInteraction.GetOriginalResponseAsync()
+                    .ContinueWith(async msg => await msg.Result.DeleteAsync());
+
                 logger.LogError(e.ToString());
 #if DEBUG
                 await socketInteraction.RespondAsync(e.ToString(), ephemeral: true);

@@ -32,7 +32,7 @@ internal static class Startup
                         .SetBasePath(Directory.GetCurrentDirectory())
                         .AddJsonFile("config.json", optional: false, reloadOnChange: true)
                         .Build();
-                    
+
                     builder.AddConfiguration(config);
                 })
                 .ConfigureDiscord((socketOptions, interactionOptions) => { })
@@ -42,13 +42,13 @@ internal static class Startup
                     services.AddSingleton<IEventManagerService, EventManagerService>();
                     services.AddSingleton<ISettingsManagerService, SettingsManagerService>();
                     services.AddSingleton<IMemberManagerService, MemberManagerService>();
-                    services.AddSingleton<ICommandHandlerService, CommandHandlerService>();
-    
+                    services.AddSingleton<CommandHandlerService>();
+
                     services.AddDbContext<AppDbContext>(options =>
                     {
                         options.UseSqlite("Data Source=DataBase/bot.db");
                     });
-                    
+
                     services.AddHostedService<DiscordBotService>();
                 })
                 .ConfigureLogging((context, logging) =>

@@ -1,8 +1,8 @@
-﻿using Discord.Commands;
+﻿using System;
+using Discord.Commands;
+using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
-using System;
-using Discord.Interactions;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -13,7 +13,7 @@ internal static class HostBuilderExtensions
     {
         var clientConfig = new DiscordSocketConfig();
         var interactionConfig = new InteractionServiceConfig();
-        
+
         configureOptions(clientConfig, interactionConfig);
 
         var client = new DiscordSocketClient(clientConfig);
@@ -34,7 +34,7 @@ internal static class HostBuilderExtensions
         Action<CommandServiceConfig> configureOptions)
     {
         var config = new CommandServiceConfig();
-        
+
         configureOptions(config);
 
         var commands = new CommandService(config);
