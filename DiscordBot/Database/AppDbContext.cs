@@ -9,6 +9,8 @@ public sealed class AppDbContext : DbContext
     {
     }
 
+    public DbSet<MemberRank> RanksEntities { get; set; }
+    public DbSet<MemberStatus> StatusesEntities { get; set; }
     public DbSet<SettingsEntity> SettingsEntities { get; set; }
     public DbSet<MemberEntity> MemberEntities { get; set; }
     public DbSet<EventEntity> EventEntities { get; set; }
