@@ -1,5 +1,8 @@
-﻿namespace DiscordBot.Database.Entities;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
+namespace DiscordBot.Database.Entities;
+
+[Table("settings")]
 public class SettingsEntity
 {
     public ulong? GuildId { get; set; }

@@ -25,7 +25,9 @@ public class SettingsModule(ISettingsManagerService settingsManager) : Interacti
         await RespondAsync(resultBuilder.ToString(), ephemeral: true);
     }
 
+
     [SlashCommand("изменить", "Изменяет настройки бота.")]
+    [RequireUserPermission(GuildPermission.ManageGuild)]
     public async Task ChangeSettings(IChannel? registration_channel = null)
     {
         var newEnt = new SettingsEntity

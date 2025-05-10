@@ -15,7 +15,7 @@ namespace DiscordBot;
 
 internal static class Startup
 {
-    static Task Main(string[] args)
+    private static async Task Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
             .Enrich.FromLogContext()
@@ -27,7 +27,7 @@ internal static class Startup
             if (!Directory.Exists("Database"))
                 Directory.CreateDirectory("Database");
 
-            var hostingTask = new HostBuilder()
+            var host = new HostBuilder()
 #if DEBUG
                 .UseEnvironment(Environments.Development)
 #else
@@ -64,14 +64,30 @@ internal static class Startup
                     logging.AddSerilog();
                 })
                 .UseSerilog()
-                .RunConsoleAsync();
+                .Build();
 
-            return hostingTask;
+            // Применяем миграции перед запуском хоста
+            using (var scope = host.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                try
+                {
+                    var dbContext = services.GetRequiredService<AppDbContext>();
+                    dbContext.Database.Migrate();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "An error occurred while migrating the database!");
+                    throw;
+                }
+            }
+
+            await host.RunAsync();
         }
         catch (Exception ex)
         {
-            Log.Fatal(ex, "Application startup failed");
-            return Task.FromException(ex);
+            Log.Fatal(ex, "Application startup failed!");
+            throw;
         }
         finally
         {
