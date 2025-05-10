@@ -17,7 +17,6 @@ internal static class Startup
 {
     static Task Main(string[] args)
     {
-        // Инициализация Serilog (можно вынести в конфиг)
         Log.Logger = new LoggerConfiguration()
             .Enrich.FromLogContext()
             .WriteTo.Console()
@@ -42,7 +41,7 @@ internal static class Startup
                 {
                     services.AddSingleton<IEventManagerService, EventManagerService>();
                     services.AddSingleton<ISettingsManagerService, SettingsManagerService>();
-                    services.AddSingleton<IRegistrationService, RegistrationService>();
+                    services.AddSingleton<IMemberManagerService, MemberManagerService>();
                     services.AddSingleton<ICommandHandlerService, CommandHandlerService>();
     
                     services.AddDbContext<AppDbContext>(options =>

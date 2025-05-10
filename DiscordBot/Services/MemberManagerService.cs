@@ -5,19 +5,19 @@ using DiscordBot.Services.Interfaces;
 
 namespace DiscordBot.Services;
 
-public class EventManagerService(AppDbContext dbContext) : IEventManagerService
+public class MemberManagerService(AppDbContext dbContext) : IMemberManagerService
 {
-    public Task<EventEntity?> GetEventById(ulong guildId, ulong eventId)
+    public Task<MemberEntity?> GetMemberById(ulong guildId, ulong memberId)
     {
         throw new System.NotImplementedException();
     }
 
-    public Task<ulong> CreateEvent(ulong guildId, EventEntity? entity = null)
+    public Task<ulong> CreateMember(ulong guildId, MemberEntity? memberEnt = null)
     {
         throw new System.NotImplementedException();
     }
 
-    public Task UpdateEvent(ulong guildId, ulong eventId, EventEntity? entity = null)
+    public Task UpdateMember(ulong guildId, ulong memberId, MemberEntity? memberEnt = null)
     {
         throw new System.NotImplementedException();
     }
