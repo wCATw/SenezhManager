@@ -10,12 +10,12 @@ public interface ISettingsManagerService
     /// </summary>
     /// <param name="guildId">ID сервера из контекста</param>
     /// <returns>Сущность целевой записи настроек</returns>
-    Task<SettingsEntity?> GetSettings(ulong guildId);
-    
+    Task<SettingsEntity?> GetSettingsAsync(ulong guildId, bool asNoTracking = false);
+
     /// <summary>
     ///  Обновляет существующую запись настроек.
     /// </summary>
     /// <param name="guildId">ID сервера из контекста</param>
     /// <param name="settingsEnt">Сущность с данными</param>
-    Task UpdateSettings(ulong guildId, SettingsEntity? settingsEnt = null);
+    Task<bool> TryUpdateSettingsAsync(ulong guildId, SettingsEntity settingsEnt);
 }
