@@ -1,0 +1,69 @@
+﻿using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using Discord;
+using Discord.Interactions;
+using Discord.WebSocket;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace DiscordBot.Services;
+
+internal sealed class DiscordBotService : IHostedService
+{
+    private readonly DiscordSocketClient _discordSocketClient;
+    private readonly InteractionService _interactionService;
+    private readonly IConfiguration _config;
+    private readonly CommandHandler _commandHandler;
+    private readonly ILogger<DiscordBotService> _logger;
+
+    public DiscordBotService(DiscordSocketClient client, InteractionService intService, IConfiguration config, CommandHandler commandHandler, ILogger<DiscordBotService> logger)
+    {
+        _discordSocketClient = client;
+        _interactionService = intService;
+        _config = config;
+        _commandHandler = commandHandler;
+        _logger = logger;
+    }
+
+    private Task Log(LogMessage message)
+    {
+        var logLevel = message.Severity switch
+        {
+            LogSeverity.Critical => LogLevel.Critical,
+            LogSeverity.Error => LogLevel.Error,
+            LogSeverity.Warning => LogLevel.Warning,
+            LogSeverity.Info => LogLevel.Information,
+            LogSeverity.Verbose => LogLevel.Debug,
+            LogSeverity.Debug => LogLevel.Trace,
+            _ => LogLevel.Information
+        };
+        
+        _logger.Log(logLevel, message.Exception, $"{message.Source}: {message.Message}");
+        
+        return Task.CompletedTask;
+    }
+
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        var commands = _interactionService;
+
+        _discordSocketClient.Log += Log;
+        _discordSocketClient.Ready += async () =>
+        {
+            await commands.RegisterCommandsGloballyAsync();
+            _logger.LogInformation($"Ready! Client is {_discordSocketClient.CurrentUser}");
+
+        };
+        await _discordSocketClient.LoginAsync(TokenType.Bot, _config["Discord:Token"]);
+        await _discordSocketClient.StartAsync();
+        await _commandHandler.StartAsync(cancellationToken);
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await _commandHandler.StopAsync(cancellationToken);
+        await _discordSocketClient.StopAsync();
+    }
+}
