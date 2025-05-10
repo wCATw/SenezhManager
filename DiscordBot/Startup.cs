@@ -24,8 +24,15 @@ internal static class Startup
 
         try
         {
+            if (!Directory.Exists("Database"))
+                Directory.CreateDirectory("Database");
+
             var hostingTask = new HostBuilder()
+#if DEBUG
+                .UseEnvironment(Environments.Development)
+#else
                 .UseEnvironment(Environments.Production)
+#endif
                 .ConfigureAppConfiguration(builder =>
                 {
                     var config = new ConfigurationBuilder()
@@ -39,14 +46,14 @@ internal static class Startup
                 .ConfigureCommands(options => { })
                 .ConfigureServices((context, services) =>
                 {
-                    services.AddSingleton<IEventManagerService, EventManagerService>();
-                    services.AddSingleton<ISettingsManagerService, SettingsManagerService>();
-                    services.AddSingleton<IMemberManagerService, MemberManagerService>();
+                    services.AddScoped<IEventManagerService, EventManagerService>();
+                    services.AddScoped<ISettingsManagerService, SettingsManagerService>();
+                    services.AddScoped<IMemberManagerService, MemberManagerService>();
                     services.AddSingleton<CommandHandlerService>();
 
                     services.AddDbContext<AppDbContext>(options =>
                     {
-                        options.UseSqlite("Data Source=DataBase/bot.db");
+                        options.UseSqlite("Data Source=Database/bot.db");
                     });
 
                     services.AddHostedService<DiscordBotService>();

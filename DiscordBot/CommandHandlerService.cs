@@ -4,8 +4,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using DiscordBot.Services.Interfaces;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace DiscordBot.Services;
@@ -14,9 +12,7 @@ internal sealed class CommandHandlerService(
     DiscordSocketClient client,
     InteractionService interactionService,
     IServiceProvider service,
-    ILogger<CommandHandlerService> logger,
-    IConfiguration config,
-    ISettingsManagerService settings)
+    ILogger<CommandHandlerService> logger)
 {
     public async Task InitializeAsync()
     {
