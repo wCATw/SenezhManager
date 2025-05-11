@@ -12,6 +12,6 @@ public class MemberEntity
     public string? StatusName { get; set; }
     public string? RankName { get; set; }
 
-    public required MemberStatusEntity Status { get; set; }
-    public required MemberRankEntity Rank { get; set; }
+    public MemberStatusEntity? Status { get; set; }
+    public MemberRankEntity? Rank { get; set; }
 }

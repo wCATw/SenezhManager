@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Discord;
 using Discord.Interactions;
 
 namespace DiscordBot.Modules;
@@ -10,15 +9,6 @@ public class RegistrationModule : InteractionModuleBase<SocketInteractionContext
 {
     [SlashCommand("новенький", "Открывает регистрацию нового участника в системе.")]
     public async Task NewMemberRegister()
-    {
-        throw new NotImplementedException();
-    }
-
-
-    [SlashCommand("старенький",
-        "Регистррует старого участника в системе. ДЛЯ АДМИНИСТРАЦИИ.")]
-    [RequireUserPermission(GuildPermission.ManageRoles)]
-    public async Task OldMemberRegister()
     {
         throw new NotImplementedException();
     }

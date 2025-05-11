@@ -12,7 +12,7 @@ public interface ISettingsManagerService
     /// <param name="guildId">ID сервера (гильдии).</param>
     /// <param name="asNoTracking">Если true — возвращает сущность без трекинга изменений (read-only).</param>
     /// <returns>Сущность настроек сервера.</returns>
-    Task<SettingsEntity?> GetSettingsAsync(ulong guildId, bool asNoTracking = false);
+    Task<SettingsEntity?> GetSettingsAsync(ulong guildId, bool asNoTracking = true);
 
     /// <summary>
     /// Обновляет существующую запись настроек для указанного сервера.

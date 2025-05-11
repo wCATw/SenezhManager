@@ -1,24 +1,8 @@
-﻿using System.Threading.Tasks;
-using DiscordBot.Database;
-using DiscordBot.Database.Entities;
+﻿using DiscordBot.Database;
 using DiscordBot.Services.Interfaces;
 
 namespace DiscordBot.Services;
 
 public class EventManagerService(AppDbContext dbContext) : IEventManagerService
 {
-    public Task<EventEntity?> GetEventById(ulong guildId, ulong eventId)
-    {
-        throw new System.NotImplementedException();
-    }
-
-    public Task<ulong> CreateEvent(ulong guildId, EventEntity? entity = null)
-    {
-        throw new System.NotImplementedException();
-    }
-
-    public Task UpdateEvent(ulong guildId, ulong eventId, EventEntity? entity = null)
-    {
-        throw new System.NotImplementedException();
-    }
 }
