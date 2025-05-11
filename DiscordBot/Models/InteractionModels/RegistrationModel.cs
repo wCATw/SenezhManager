@@ -20,5 +20,5 @@ public class ApplicationModel : IModal
     [ModalTextInput("friends_input", placeholder: "Мои друзья А и Б...", maxLength: 50)]
     public string Friends { get; set; } = default!;
 
-    public string Title => "Форма заявки на вступления";
+    public string Title => "Форма заявки на вступление";
 }

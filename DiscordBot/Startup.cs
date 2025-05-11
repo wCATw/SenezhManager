@@ -56,6 +56,7 @@ internal static class Startup
                         options.UseSqlite("Data Source=Database/bot.db");
                     });
 
+                    services.AddHostedService<MaintenanceService>();
                     services.AddHostedService<DiscordBotService>();
                 })
                 .ConfigureLogging((context, logging) =>
@@ -66,14 +67,13 @@ internal static class Startup
                 .UseSerilog()
                 .Build();
 
-            // Применяем миграции перед запуском хоста
             using (var scope = host.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
                 try
                 {
                     var dbContext = services.GetRequiredService<AppDbContext>();
-                    dbContext.Database.Migrate();
+                    await dbContext.Database.MigrateAsync();
                 }
                 catch (Exception ex)
                 {
@@ -91,7 +91,7 @@ internal static class Startup
         }
         finally
         {
-            Log.CloseAndFlush();
+            await Log.CloseAndFlushAsync();
         }
     }
 }

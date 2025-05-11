@@ -6,16 +6,19 @@ namespace DiscordBot.Services.Interfaces;
 public interface ISettingsManagerService
 {
     /// <summary>
-    ///  Берет из БД запись настроек. Если не существует, создает новую пустую и берет её.
+    /// Получает из базы данных запись настроек для указанного сервера.
+    /// Если запись не найдена — создаёт новую и возвращает её.
     /// </summary>
-    /// <param name="guildId">ID сервера из контекста</param>
-    /// <returns>Сущность целевой записи настроек</returns>
+    /// <param name="guildId">ID сервера (гильдии).</param>
+    /// <param name="asNoTracking">Если true — возвращает сущность без трекинга изменений (read-only).</param>
+    /// <returns>Сущность настроек сервера.</returns>
     Task<SettingsEntity?> GetSettingsAsync(ulong guildId, bool asNoTracking = false);
 
     /// <summary>
-    ///  Обновляет существующую запись настроек.
+    /// Обновляет существующую запись настроек для указанного сервера.
     /// </summary>
-    /// <param name="guildId">ID сервера из контекста</param>
-    /// <param name="settingsEnt">Сущность с данными</param>
+    /// <param name="guildId">ID сервера (гильдии).</param>
+    /// <param name="settingsEnt">Сущность с новыми значениями полей.</param>
+    /// <returns>True, если обновление прошло успешно.</returns>
     Task<bool> TryUpdateSettingsAsync(ulong guildId, SettingsEntity settingsEnt);
 }
