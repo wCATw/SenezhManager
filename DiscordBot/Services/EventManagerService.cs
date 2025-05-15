@@ -1,8 +1,7 @@
-﻿using DiscordBot.Database;
-using DiscordBot.Services.Interfaces;
+﻿using DiscordBot.Services.Interfaces;
 
 namespace DiscordBot.Services;
 
-public class EventManagerService(AppDbContext dbContext) : IEventManagerService
+public class EventManagerService : IEventManagerService
 {
 }

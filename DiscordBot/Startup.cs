@@ -24,8 +24,8 @@ internal static class Startup
 
         try
         {
-            if (!Directory.Exists("Database"))
-                Directory.CreateDirectory("Database");
+            if (!Directory.Exists("data"))
+                Directory.CreateDirectory("data");
 
             var host = new HostBuilder()
 #if DEBUG
@@ -49,12 +49,10 @@ internal static class Startup
                     services.AddScoped<IEventManagerService, EventManagerService>();
                     services.AddScoped<ISettingsManagerService, SettingsManagerService>();
                     services.AddScoped<IMemberManagerService, MemberManagerService>();
+                    services.AddScoped<IDbManagerService, DbManagerService>();
                     services.AddSingleton<CommandHandlerService>();
 
-                    services.AddDbContext<AppDbContext>(options =>
-                    {
-                        options.UseSqlite("Data Source=Database/bot.db");
-                    });
+                    services.AddDbContext<AppDbContext>(options => { options.UseSqlite("Data Source=data/bot.db"); });
 
                     services.AddHostedService<MaintenanceService>();
                     services.AddHostedService<DiscordBotService>();

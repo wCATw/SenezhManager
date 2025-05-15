@@ -7,6 +7,8 @@ using DiscordBot.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Events;
 
 namespace DiscordBot;
 
@@ -22,7 +24,7 @@ internal sealed class DiscordBotService(
     {
         var commands = intService;
 
-        client.Log += Log;
+        client.Log += LogAsync;
         client.Ready += async () =>
         {
             await commands.RegisterCommandsGloballyAsync();
@@ -38,21 +40,19 @@ internal sealed class DiscordBotService(
         await client.StopAsync();
     }
 
-    private Task Log(LogMessage message)
+    private static async Task LogAsync(LogMessage message)
     {
-        var logLevel = message.Severity switch
+        var severity = message.Severity switch
         {
-            LogSeverity.Critical => LogLevel.Critical,
-            LogSeverity.Error => LogLevel.Error,
-            LogSeverity.Warning => LogLevel.Warning,
-            LogSeverity.Info => LogLevel.Information,
-            LogSeverity.Verbose => LogLevel.Debug,
-            LogSeverity.Debug => LogLevel.Trace,
-            _ => LogLevel.Information
+            LogSeverity.Critical => LogEventLevel.Fatal,
+            LogSeverity.Error => LogEventLevel.Error,
+            LogSeverity.Warning => LogEventLevel.Warning,
+            LogSeverity.Info => LogEventLevel.Information,
+            LogSeverity.Verbose => LogEventLevel.Verbose,
+            LogSeverity.Debug => LogEventLevel.Debug,
+            _ => LogEventLevel.Information
         };
-
-        logger.Log(logLevel, message.Exception, $"{message.Source}: {message.Message}");
-
-        return Task.CompletedTask;
+        Log.Write(severity, message.Exception, "[{Source}] {Message}", message.Source, message.Message);
+        await Task.CompletedTask;
     }
 }

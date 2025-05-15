@@ -1,24 +1,24 @@
 ﻿using System.Threading.Tasks;
-using DiscordBot.Database.Entities;
+using DiscordBot.Database;
 
 namespace DiscordBot.Services.Interfaces;
 
 public interface ISettingsManagerService
 {
     /// <summary>
-    /// Получает из базы данных запись настроек для указанного сервера.
-    /// Если запись не найдена — создаёт новую и возвращает её.
+    /// Асинхронно получает настройки для указанной гильдии. 
+    /// Если настроек нет — создаёт новый экземпляр, сохраняет в базу и возвращает его.
     /// </summary>
-    /// <param name="guildId">ID сервера (гильдии).</param>
-    /// <param name="asNoTracking">Если true — возвращает сущность без трекинга изменений (read-only).</param>
-    /// <returns>Сущность настроек сервера.</returns>
+    /// <param name="guildId">Идентификатор гильдии.</param>
+    /// <param name="asNoTracking">Определяет, нужно ли использовать AsNoTracking.</param>
+    /// <returns>Настройки гильдии или вновь созданный экземпляр.</returns>
     Task<SettingsEntity?> GetSettingsAsync(ulong guildId, bool asNoTracking = true);
 
+
     /// <summary>
-    /// Обновляет существующую запись настроек для указанного сервера.
+    /// Асинхронно обновляет свойства настроек гильдии, если они не null.
     /// </summary>
-    /// <param name="guildId">ID сервера (гильдии).</param>
-    /// <param name="settingsEnt">Сущность с новыми значениями полей.</param>
-    /// <returns>True, если обновление прошло успешно.</returns>
-    Task<bool> TryUpdateSettingsAsync(ulong guildId, SettingsEntity settingsEnt);
+    /// <param name="settingsEnt">Обновлённый экземпляр сущности с новыми значениями.</param>
+    /// <returns>True, если обновление прошло успешно; иначе — false.</returns>
+    Task<bool> TryUpdateSettingsAsync(SettingsEntity settingsEnt);
 }

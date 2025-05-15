@@ -1,8 +1,9 @@
-﻿using System.Text;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
-using DiscordBot.Database.Entities;
+using DiscordBot.Database;
 using DiscordBot.Services.Interfaces;
 
 namespace DiscordBot.Modules;
@@ -13,31 +14,83 @@ public class SettingsModule(ISettingsManagerService settingsManager) : Interacti
     [SlashCommand("показать", "Показывает все настройки бота.")]
     public async Task ShowSettings()
     {
+        await DeferAsync();
+
         var settings = await settingsManager.GetSettingsAsync(Context.Guild.Id);
 
-        if (settings == null) await RespondAsync("Произошла ошибка!", ephemeral: true);
+        if (settings == null)
+        {
+            await FollowupAsync("Настройки для этого сервера не найдены.");
+            return;
+        }
 
-        var resultBuilder = new StringBuilder();
+        var embedBuilder = new EmbedBuilder()
+            .WithTitle("Текущие настройки")
+            .WithColor(Color.Blue);
 
-        resultBuilder.AppendLine("## Настройки регистрации");
-        resultBuilder.AppendLine($"Канал регистрации: <#{settings?.RegistrationChannelId}>");
+        var properties = typeof(SettingsEntity)
+            .GetProperties()
+            .Where(p => p.Name != nameof(SettingsEntity.GuildId));
 
-        await RespondAsync(resultBuilder.ToString(), ephemeral: true);
+        foreach (var prop in properties)
+        {
+            var value = prop.GetValue(settings);
+            var displayValue = value != null ? value.ToString() : "*не установлено*";
+
+            embedBuilder.AddField(prop.Name, displayValue, true);
+        }
+
+        await FollowupAsync(embed: embedBuilder.Build());
     }
-
 
     [SlashCommand("изменить", "Изменяет настройки бота.")]
     [RequireUserPermission(GuildPermission.ManageGuild)]
-    public async Task ChangeSettings(IChannel? registration_channel = null)
+    public async Task ChangeSettings([Autocomplete(typeof(SettingsFieldAutocompleteProvider))] string option,
+        string value)
     {
-        var newEnt = new SettingsEntity
+        await DeferAsync();
+
+        var entity = new SettingsEntity { GuildId = Context.Guild.Id };
+
+        var prop = typeof(SettingsEntity).GetProperty(option);
+        if (prop == null || prop.Name == nameof(SettingsEntity.GuildId))
         {
-            RegistrationChannelId = registration_channel?.Id
-        };
+            await FollowupAsync($"Поле `{option}` не найдено или его нельзя изменять.");
+            return;
+        }
 
-        if (!await settingsManager.TryUpdateSettingsAsync(Context.Guild.Id, newEnt))
-            await RespondAsync("Произошла ошибка!", ephemeral: true);
+        try
+        {
+            var convertedValue =
+                Convert.ChangeType(value, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+            prop.SetValue(entity, convertedValue);
+        }
+        catch
+        {
+            await FollowupAsync($"Не удалось преобразовать значение `{value}` для поля `{option}`.");
+            return;
+        }
 
-        await RespondAsync("Настройки обновлены!", ephemeral: true);
+        var result = await settingsManager.TryUpdateSettingsAsync(entity);
+
+        if (result)
+            await FollowupAsync($"Настройка `{option}` успешно обновлена.");
+        else
+            await FollowupAsync($"Не удалось обновить настройку `{option}`.");
+    }
+}
+
+public class SettingsFieldAutocompleteProvider : AutocompleteHandler
+{
+    public override async Task<AutocompletionResult> GenerateSuggestionsAsync(IInteractionContext context,
+        IAutocompleteInteraction interaction, IParameterInfo parameter, IServiceProvider services)
+    {
+        var props = typeof(SettingsEntity)
+            .GetProperties()
+            .Where(p => p.Name != nameof(SettingsEntity.GuildId))
+            .Select(p => new AutocompleteResult(p.Name, p.Name))
+            .ToList();
+
+        return AutocompletionResult.FromSuccess(props);
     }
 }

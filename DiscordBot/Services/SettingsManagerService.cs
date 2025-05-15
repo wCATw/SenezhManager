@@ -1,20 +1,14 @@
 ﻿using System.Threading.Tasks;
 using DiscordBot.Database;
-using DiscordBot.Database.Entities;
 using DiscordBot.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace DiscordBot.Services;
 
-public class SettingsManagerService(AppDbContext dbContext) : ISettingsManagerService
+public class SettingsManagerService(IDbManagerService dbManager) : ISettingsManagerService
 {
     public async Task<SettingsEntity?> GetSettingsAsync(ulong guildId, bool asNoTracking = true)
     {
-        var query = dbContext.SettingsEntities.AsQueryable();
-
-        if (asNoTracking) query = query.AsNoTracking();
-
-        var entity = await query.FirstOrDefaultAsync(x => x.GuildId == guildId);
+        var entity = await dbManager.GetGuildBaseEntityAsync<SettingsEntity>(guildId, asNoTracking);
 
         if (entity == null)
         {
@@ -22,16 +16,21 @@ public class SettingsManagerService(AppDbContext dbContext) : ISettingsManagerSe
             {
                 GuildId = guildId
             };
-            dbContext.SettingsEntities.Add(entity);
-            await dbContext.SaveChangesAsync();
+
+            await dbManager.AddOrUpdateAsync(entity);
         }
 
         return entity;
     }
 
-    public async Task<bool> TryUpdateSettingsAsync(ulong guildId, SettingsEntity settingsEnt)
+    public async Task<bool> TryUpdateSettingsAsync(SettingsEntity settingsEnt)
     {
-        var entity = await GetSettingsAsync(guildId, false);
+        if (settingsEnt.GuildId == null)
+            return false;
+
+        var entity = await GetSettingsAsync(settingsEnt.GuildId.Value, false);
+        if (entity == null)
+            return false;
 
         var properties = typeof(SettingsEntity).GetProperties();
         foreach (var prop in properties)
@@ -39,10 +38,11 @@ public class SettingsManagerService(AppDbContext dbContext) : ISettingsManagerSe
             if (prop.Name == nameof(SettingsEntity.GuildId)) continue;
 
             var newValue = prop.GetValue(settingsEnt);
-            if (newValue != null) prop.SetValue(entity, newValue);
+            if (newValue != null)
+                prop.SetValue(entity, newValue);
         }
 
-        await dbContext.SaveChangesAsync();
+        await dbManager.AddOrUpdateAsync(entity);
         return true;
     }
 }
