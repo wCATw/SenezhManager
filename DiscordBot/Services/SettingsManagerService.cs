@@ -1,5 +1,5 @@
 ﻿using System.Threading.Tasks;
-using DiscordBot.Database;
+using DiscordBot.Database.Entities;
 using DiscordBot.Services.Interfaces;
 
 namespace DiscordBot.Services;
@@ -8,16 +8,19 @@ public class SettingsManagerService(IDbManagerService dbManager) : ISettingsMana
 {
     public async Task<SettingsEntity?> GetSettingsAsync(ulong guildId, bool asNoTracking = true)
     {
-        var entity = await dbManager.GetGuildBaseEntityAsync<SettingsEntity>(guildId, asNoTracking);
+        var result = await dbManager.GetGuildBaseEntityAsync<SettingsEntity>(guildId, asNoTracking);
+        if (!result.IsSuccess)
+            throw result.Exception!;
+
+        var entity = result.Result;
 
         if (entity == null)
         {
-            entity = new SettingsEntity
-            {
-                GuildId = guildId
-            };
+            entity = new SettingsEntity { GuildId = guildId };
 
-            await dbManager.AddOrUpdateAsync(entity);
+            var addResult = await dbManager.AddOrUpdateAsync(entity);
+            if (!addResult.IsSuccess)
+                throw addResult.Exception!;
         }
 
         return entity;
@@ -28,8 +31,8 @@ public class SettingsManagerService(IDbManagerService dbManager) : ISettingsMana
         if (settingsEnt.GuildId == null)
             return false;
 
-        var entity = await GetSettingsAsync(settingsEnt.GuildId.Value, false);
-        if (entity == null)
+        var result = await GetSettingsAsync(settingsEnt.GuildId.Value, false);
+        if (result == null)
             return false;
 
         var properties = typeof(SettingsEntity).GetProperties();
@@ -39,10 +42,10 @@ public class SettingsManagerService(IDbManagerService dbManager) : ISettingsMana
 
             var newValue = prop.GetValue(settingsEnt);
             if (newValue != null)
-                prop.SetValue(entity, newValue);
+                prop.SetValue(result, newValue);
         }
 
-        await dbManager.AddOrUpdateAsync(entity);
-        return true;
+        var updateResult = await dbManager.AddOrUpdateAsync(result);
+        return updateResult.IsSuccess;
     }
 }

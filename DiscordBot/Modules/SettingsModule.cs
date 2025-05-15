@@ -3,8 +3,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
-using DiscordBot.Database;
+using DiscordBot.Database.Entities;
 using DiscordBot.Services.Interfaces;
+using DiscordBot.Utils;
 
 namespace DiscordBot.Modules;
 
@@ -14,13 +15,13 @@ public class SettingsModule(ISettingsManagerService settingsManager) : Interacti
     [SlashCommand("показать", "Показывает все настройки бота.")]
     public async Task ShowSettings()
     {
-        await DeferAsync();
+        await DeferAsync(true);
 
         var settings = await settingsManager.GetSettingsAsync(Context.Guild.Id);
 
         if (settings == null)
         {
-            await FollowupAsync("Настройки для этого сервера не найдены.");
+            await FollowupAsync("Ошибка!", ephemeral: true);
             return;
         }
 
@@ -34,13 +35,14 @@ public class SettingsModule(ISettingsManagerService settingsManager) : Interacti
 
         foreach (var prop in properties)
         {
+            var displayName = DisplayHelper.GetDisplayName(prop);
             var value = prop.GetValue(settings);
             var displayValue = value != null ? value.ToString() : "*не установлено*";
 
-            embedBuilder.AddField(prop.Name, displayValue, true);
+            embedBuilder.AddField(displayName, displayValue, true);
         }
 
-        await FollowupAsync(embed: embedBuilder.Build());
+        await FollowupAsync(embed: embedBuilder.Build(), ephemeral: true);
     }
 
     [SlashCommand("изменить", "Изменяет настройки бота.")]
@@ -48,16 +50,18 @@ public class SettingsModule(ISettingsManagerService settingsManager) : Interacti
     public async Task ChangeSettings([Autocomplete(typeof(SettingsFieldAutocompleteProvider))] string option,
         string value)
     {
-        await DeferAsync();
+        await DeferAsync(true);
 
         var entity = new SettingsEntity { GuildId = Context.Guild.Id };
 
         var prop = typeof(SettingsEntity).GetProperty(option);
         if (prop == null || prop.Name == nameof(SettingsEntity.GuildId))
         {
-            await FollowupAsync($"Поле `{option}` не найдено или его нельзя изменять.");
+            await FollowupAsync($"Поле `{option}` не найдено или его нельзя изменять.", ephemeral: true);
             return;
         }
+
+        var displayName = DisplayHelper.GetDisplayName(prop);
 
         try
         {
@@ -67,30 +71,16 @@ public class SettingsModule(ISettingsManagerService settingsManager) : Interacti
         }
         catch
         {
-            await FollowupAsync($"Не удалось преобразовать значение `{value}` для поля `{option}`.");
+            await FollowupAsync($"Не удалось преобразовать значение `{value}` для поля `{displayName}`.",
+                ephemeral: true);
             return;
         }
 
         var result = await settingsManager.TryUpdateSettingsAsync(entity);
 
         if (result)
-            await FollowupAsync($"Настройка `{option}` успешно обновлена.");
+            await FollowupAsync($"Настройка `{displayName}` успешно обновлена.", ephemeral: true);
         else
-            await FollowupAsync($"Не удалось обновить настройку `{option}`.");
-    }
-}
-
-public class SettingsFieldAutocompleteProvider : AutocompleteHandler
-{
-    public override async Task<AutocompletionResult> GenerateSuggestionsAsync(IInteractionContext context,
-        IAutocompleteInteraction interaction, IParameterInfo parameter, IServiceProvider services)
-    {
-        var props = typeof(SettingsEntity)
-            .GetProperties()
-            .Where(p => p.Name != nameof(SettingsEntity.GuildId))
-            .Select(p => new AutocompleteResult(p.Name, p.Name))
-            .ToList();
-
-        return AutocompletionResult.FromSuccess(props);
+            await FollowupAsync($"Не удалось обновить настройку `{option}`.", ephemeral: true);
     }
 }

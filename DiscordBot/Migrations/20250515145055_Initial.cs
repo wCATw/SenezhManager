@@ -15,8 +15,8 @@ namespace DiscordBot.Migrations
                 name: "events",
                 columns: table => new
                 {
-                    Id = table.Column<ulong>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
+                    GuildId = table.Column<ulong>(type: "INTEGER", nullable: false),
+                    Id = table.Column<ulong>(type: "INTEGER", nullable: false),
                     MentionMessageId = table.Column<ulong>(type: "INTEGER", nullable: true),
                     Heading = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
                     Description = table.Column<string>(type: "TEXT", maxLength: 4096, nullable: true),
@@ -24,12 +24,11 @@ namespace DiscordBot.Migrations
                     ThumbnailUrl = table.Column<string>(type: "TEXT", maxLength: 300, nullable: true),
                     StartTime = table.Column<TimeSpan>(type: "TEXT", nullable: true),
                     IsRepeatable = table.Column<bool>(type: "INTEGER", nullable: true),
-                    RepeatDayOfWeek = table.Column<int>(type: "INTEGER", nullable: true),
-                    GuildId = table.Column<ulong>(type: "INTEGER", nullable: true)
+                    RepeatDayOfWeek = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_events", x => x.Id);
+                    table.PrimaryKey("PK_events", x => new { x.GuildId, x.Id });
                 });
 
             migrationBuilder.CreateTable(
@@ -44,6 +43,12 @@ namespace DiscordBot.Migrations
                 {
                     table.PrimaryKey("PK_settings", x => x.GuildId);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_events_GuildId_Id",
+                table: "events",
+                columns: new[] { "GuildId", "Id" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_settings_GuildId",

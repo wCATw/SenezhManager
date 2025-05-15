@@ -1,5 +1,5 @@
 ﻿using System.Threading.Tasks;
-using DiscordBot.Database;
+using DiscordBot.Database.Entities;
 
 namespace DiscordBot.Services.Interfaces;
 

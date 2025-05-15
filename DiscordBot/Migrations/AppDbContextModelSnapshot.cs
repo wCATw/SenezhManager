@@ -17,18 +17,17 @@ namespace DiscordBot.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
 
-            modelBuilder.Entity("DiscordBot.Database.EventEntity", b =>
+            modelBuilder.Entity("DiscordBot.Database.Entities.EventEntity", b =>
                 {
+                    b.Property<ulong>("GuildId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<ulong>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Description")
                         .HasMaxLength(4096)
                         .HasColumnType("TEXT");
-
-                    b.Property<ulong?>("GuildId")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Heading")
                         .HasMaxLength(256)
@@ -54,12 +53,15 @@ namespace DiscordBot.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                    b.HasKey("GuildId", "Id");
+
+                    b.HasIndex("GuildId", "Id")
+                        .IsUnique();
 
                     b.ToTable("events");
                 });
 
-            modelBuilder.Entity("DiscordBot.Database.SettingsEntity", b =>
+            modelBuilder.Entity("DiscordBot.Database.Entities.SettingsEntity", b =>
                 {
                     b.Property<ulong>("GuildId")
                         .ValueGeneratedOnAdd()
