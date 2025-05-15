@@ -3,14 +3,13 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using DiscordBot.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 
-namespace DiscordBot;
+namespace DiscordBot.Services;
 
 internal sealed class DiscordBotService(
     DiscordSocketClient client,

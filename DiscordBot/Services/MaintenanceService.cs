@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 
-namespace DiscordBot;
+namespace DiscordBot.Services;
 
 public class MaintenanceService : BackgroundService
 {
