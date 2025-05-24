@@ -6,7 +6,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 
-namespace DiscordBot.Services;
+namespace DiscordBot.Services.Singletons;
 
 internal sealed class CommandHandlerService(
     DiscordSocketClient client,

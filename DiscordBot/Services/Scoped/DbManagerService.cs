@@ -4,11 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using DiscordBot.Database;
 using DiscordBot.Database.Entities;
-using DiscordBot.Services.Interfaces;
+using DiscordBot.Services.Scoped.Interfaces;
 using DiscordBot.Services.Structs;
 using Microsoft.EntityFrameworkCore;
 
-namespace DiscordBot.Services;
+namespace DiscordBot.Services.Scoped;
 
 public class DbManagerService(AppDbContext dbContext) : IDbManagerService
 {

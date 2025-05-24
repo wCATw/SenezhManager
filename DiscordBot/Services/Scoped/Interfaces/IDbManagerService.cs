@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using DiscordBot.Database.Entities;
 using DiscordBot.Services.Structs;
 
-namespace DiscordBot.Services.Interfaces;
+namespace DiscordBot.Services.Scoped.Interfaces;
 
 public interface IDbManagerService
 {

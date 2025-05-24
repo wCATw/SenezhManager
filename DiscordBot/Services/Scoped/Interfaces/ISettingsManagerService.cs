@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using DiscordBot.Database.Entities;
 
-namespace DiscordBot.Services.Interfaces;
+namespace DiscordBot.Services.Scoped.Interfaces;
 
 public interface ISettingsManagerService
 {

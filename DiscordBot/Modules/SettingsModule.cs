@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
 using DiscordBot.Database.Entities;
-using DiscordBot.Services.Interfaces;
+using DiscordBot.Services.Scoped.Interfaces;
 using DiscordBot.Utils;
 
 namespace DiscordBot.Modules;

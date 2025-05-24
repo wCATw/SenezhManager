@@ -1,5 +1,5 @@
 ﻿using Discord.Interactions;
-using DiscordBot.Services.Interfaces;
+using DiscordBot.Services.Scoped.Interfaces;
 
 namespace DiscordBot.Modules;
 

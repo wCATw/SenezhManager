@@ -2,8 +2,10 @@
 using System.IO;
 using System.Threading.Tasks;
 using DiscordBot.Database;
-using DiscordBot.Services;
-using DiscordBot.Services.Interfaces;
+using DiscordBot.Services.Hosted;
+using DiscordBot.Services.Scoped;
+using DiscordBot.Services.Scoped.Interfaces;
+using DiscordBot.Services.Singletons;
 using DiscordBot.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
