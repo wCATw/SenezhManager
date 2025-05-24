@@ -1,31 +1,42 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
-using DiscordBot.Database.Entities;
 
 namespace DiscordBot.Utils;
 
 public static class DisplayHelper
 {
-    public static string GetDisplayName(PropertyInfo prop)
+    public static string GetDisplayName(MemberInfo member)
     {
-        return prop.GetCustomAttribute<DisplayAttribute>()?.Name ?? prop.Name;
+        if (member.IsSystemField())
+            return member.Name;
+
+        return member.GetCustomAttribute<DisplayAttribute>()?.Name ?? member.Name;
+    }
+
+    public static IEnumerable<MemberInfo> GetUserVisibleMembers(this Type type)
+    {
+        return type.GetMembers(BindingFlags.Public | BindingFlags.Instance)
+            .Where(m => m is PropertyInfo or FieldInfo)
+            .Where(m => !m.IsSystemField());
     }
 
     public static PropertyInfo? GetPropertyByDisplayName(Type type, string displayName)
     {
         return type.GetProperties()
             .FirstOrDefault(p =>
-                p.GetCustomAttribute<DisplayAttribute>()?.Name == displayName
-                || p.Name == displayName);
+                (p.GetCustomAttribute<DisplayAttribute>()?.Name == displayName
+                 || p.Name == displayName)
+                && !p.IsSystemField());
     }
 }
 
-public class SettingsFieldAutocompleteProvider : AutocompleteHandler
+public class EntityFieldAutocompleteProvider<T> : AutocompleteHandler
 {
     public override async Task<AutocompletionResult> GenerateSuggestionsAsync(
         IInteractionContext context,
@@ -33,14 +44,10 @@ public class SettingsFieldAutocompleteProvider : AutocompleteHandler
         IParameterInfo parameter,
         IServiceProvider services)
     {
-        var props = typeof(SettingsEntity)
-            .GetProperties()
-            .Where(p => p.Name != nameof(SettingsEntity.GuildId))
-            .Select(p =>
-            {
-                var displayName = DisplayHelper.GetDisplayName(p);
-                return new AutocompleteResult(displayName, p.Name);
-            })
+        var props = typeof(T)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.GetCustomAttribute<DisplayAttribute>()?.Name != "SYSTEM")
+            .Select(p => new AutocompleteResult(DisplayHelper.GetDisplayName(p), p.Name))
             .ToList();
 
         return AutocompletionResult.FromSuccess(props);

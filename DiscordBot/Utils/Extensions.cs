@@ -1,10 +1,21 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using Discord.Commands;
 using Discord.Interactions;
 using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace DiscordBot.Utils;
+
+public static class MemberInfoExtensions
+{
+    public static bool IsSystemField(this MemberInfo member)
+    {
+        return member.GetCustomAttribute<DisplayAttribute>()?.Name == "SYSTEM";
+    }
+}
 
 internal static class HostBuilderExtensions
 {

@@ -6,6 +6,8 @@ namespace DiscordBot.Database.Entities;
 [Table("settings")]
 public class SettingsEntity : GuildBaseEntity
 {
-    [Display(Name = "Задержка удаления сообщений (минуты)")]
-    public byte? ExpireEventMessageDelayMinutes { get; set; }
+    [Display(Name = "Канал расписания и мероприятий")]
+    public ulong? ScheduleChannelId { get; set; }
+
+    [Display(Name = "SYSTEM")] public ulong? ScheduleMessageId { get; set; }
 }

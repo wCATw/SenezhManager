@@ -3,12 +3,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DiscordBot.Database.Entities;
 
-[Table("events")]
-public class EventEntity : GuildAndIdBaseEntity, IEventData
+[Table("event_templates")]
+public class EventTemplateEntity : GuildAndIdBaseEntity, IEventData
 {
-    public DateTime? EventDateTime { get; set; }
-    public ulong? ChannelId { get; set; }
-    public ulong? MessageId { get; set; }
+    public EventRepeatabilityEntity? RepeatabilityEntity { get; set; }
     public string? Title { get; set; }
     public string? Description { get; set; }
     public DateTime? CreationDateTime { get; set; }

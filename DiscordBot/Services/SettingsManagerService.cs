@@ -6,9 +6,9 @@ namespace DiscordBot.Services;
 
 public class SettingsManagerService(IDbManagerService dbManager) : ISettingsManagerService
 {
-    public async Task<SettingsEntity?> GetSettingsAsync(ulong guildId, bool asNoTracking = true)
+    public async Task<SettingsEntity> GetSettingsAsync(ulong guildId, bool asNoTracking = true)
     {
-        var result = await dbManager.GetGuildBaseEntityAsync<SettingsEntity>(guildId, asNoTracking);
+        var result = await dbManager.GetGuildBasedAsync<SettingsEntity>(guildId, asNoTracking);
         if (!result.IsSuccess)
             throw result.Exception!;
 

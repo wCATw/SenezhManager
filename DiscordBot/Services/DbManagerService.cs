@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DiscordBot.Database;
@@ -11,7 +12,7 @@ namespace DiscordBot.Services;
 
 public class DbManagerService(AppDbContext dbContext) : IDbManagerService
 {
-    public async Task<DbResult<T?>> GetGuildBaseEntityAsync<T>(ulong guildId, bool asNoTracking = true)
+    public async Task<DbResult<T?>> GetGuildBasedAsync<T>(ulong guildId, bool asNoTracking = true)
         where T : GuildBaseEntity
     {
         try
@@ -28,7 +29,7 @@ public class DbManagerService(AppDbContext dbContext) : IDbManagerService
         }
     }
 
-    public async Task<DbResult<T?>> GetGuildAndIdBaseEntityAsync<T>(ulong guildId, ulong id, bool asNoTracking = true)
+    public async Task<DbResult<T?>> GetGuildAndIdBasedAsync<T>(ulong guildId, ulong id, bool asNoTracking = true)
         where T : GuildAndIdBaseEntity
     {
         try
@@ -45,7 +46,7 @@ public class DbManagerService(AppDbContext dbContext) : IDbManagerService
         }
     }
 
-    public async Task<DbResult<T?>> GetGuildAndUserBaseEntityAsync<T>(ulong guildId, ulong userId,
+    public async Task<DbResult<T?>> GetGuildAndUserBasedAsync<T>(ulong guildId, ulong userId,
         bool asNoTracking = true)
         where T : GuildAndUserBaseEntity
     {
@@ -60,6 +61,23 @@ public class DbManagerService(AppDbContext dbContext) : IDbManagerService
         catch (Exception ex)
         {
             return new DbResult<T?>(ex);
+        }
+    }
+
+    public async Task<DbResult<List<T>?>> GetAllGuildBasedAsync<T>(ulong guildId, bool asNoTracking = true)
+        where T : GuildBaseEntity
+    {
+        try
+        {
+            var query = dbContext.Set<T>().AsQueryable();
+            if (asNoTracking) query = query.AsNoTracking();
+
+            var list = await query.Where(x => x.GuildId == guildId).ToListAsync();
+            return new DbResult<List<T>?>(list);
+        }
+        catch (Exception ex)
+        {
+            return new DbResult<List<T>?>(ex);
         }
     }
 

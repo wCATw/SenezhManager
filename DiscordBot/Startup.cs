@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using DiscordBot.Database;
 using DiscordBot.Services;
 using DiscordBot.Services.Interfaces;
+using DiscordBot.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,10 +47,9 @@ internal static class Startup
                 .ConfigureCommands(options => { })
                 .ConfigureServices((context, services) =>
                 {
-                    services.AddScoped<IEventManagerService, EventManagerService>();
                     services.AddScoped<ISettingsManagerService, SettingsManagerService>();
-                    services.AddScoped<IMemberManagerService, MemberManagerService>();
                     services.AddScoped<IDbManagerService, DbManagerService>();
+                    services.AddScoped<IEventManagerService, EventManagerService>();
                     services.AddSingleton<CommandHandlerService>();
 
                     services.AddDbContext<AppDbContext>(options => { options.UseSqlite("Data Source=data/bot.db"); });

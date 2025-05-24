@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
@@ -17,26 +17,22 @@ public class SettingsModule(ISettingsManagerService settingsManager) : Interacti
     {
         await DeferAsync(true);
 
-        var settings = await settingsManager.GetSettingsAsync(Context.Guild.Id);
-
-        if (settings == null)
-        {
-            await FollowupAsync("Ошибка!", ephemeral: true);
-            return;
-        }
+        var settings = await settingsManager.GetSettingsAsync(Context.Guild.Id) ?? new SettingsEntity();
 
         var embedBuilder = new EmbedBuilder()
             .WithTitle("Текущие настройки")
             .WithColor(Color.Blue);
 
-        var properties = typeof(SettingsEntity)
-            .GetProperties()
-            .Where(p => p.Name != nameof(SettingsEntity.GuildId));
-
-        foreach (var prop in properties)
+        foreach (var member in typeof(SettingsEntity).GetUserVisibleMembers())
         {
-            var displayName = DisplayHelper.GetDisplayName(prop);
-            var value = prop.GetValue(settings);
+            var value = member switch
+            {
+                PropertyInfo prop => prop.GetValue(settings),
+                FieldInfo field => field.GetValue(settings),
+                _ => null
+            };
+
+            var displayName = DisplayHelper.GetDisplayName(member);
             var displayValue = value != null ? value.ToString() : "*не установлено*";
 
             embedBuilder.AddField(displayName, displayValue, true);
@@ -47,7 +43,9 @@ public class SettingsModule(ISettingsManagerService settingsManager) : Interacti
 
     [SlashCommand("изменить", "Изменяет настройки бота.")]
     [RequireUserPermission(GuildPermission.ManageGuild)]
-    public async Task ChangeSettings([Autocomplete(typeof(SettingsFieldAutocompleteProvider))] string option,
+    public async Task ChangeSettings(
+        [Autocomplete(typeof(EntityFieldAutocompleteProvider<SettingsEntity>))]
+        string option,
         string value)
     {
         await DeferAsync(true);

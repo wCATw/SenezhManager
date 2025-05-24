@@ -27,5 +27,6 @@
 
     <ItemGroup>
         <Folder Include="Migrations\"/>
+        <Folder Include="Models\InteractionModels\"/>
     </ItemGroup>
 </Project>
