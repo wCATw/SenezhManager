@@ -56,10 +56,11 @@ internal sealed class CommandHandlerService(
     {
         if (!result.IsSuccess)
         {
-            var exec = (ExecuteResult)result;
-            var errorStr = $"```{exec.ErrorReason}\n{exec.Exception}```";
-            logger.LogError(errorStr);
+            var execResult = (ExecuteResult)result;
+            logger.LogError($"{execResult.ErrorReason}\n{execResult.Exception}");
 #if DEBUG
+            var errorStr = $"```{execResult.ErrorReason}\n{execResult.Exception}```";
+
             if (errorStr.Length > 2000)
             {
                 await interactionContext.Interaction.RespondAsync("Ошибка обработки команды больше 2000 символов.",
@@ -86,10 +87,10 @@ internal sealed class CommandHandlerService(
                 await socketInteraction.GetOriginalResponseAsync()
                     .ContinueWith(async msg => await msg.Result.DeleteAsync());
 
-                var errorStr = $"```{e}```";
-
                 logger.LogError(e.ToString());
 #if DEBUG
+                var errorStr = $"```{e}```";
+
                 if (errorStr.Length > 2000)
                 {
                     await socketInteraction.RespondAsync("Ошибка обработки команды больше 2000 символов.",
