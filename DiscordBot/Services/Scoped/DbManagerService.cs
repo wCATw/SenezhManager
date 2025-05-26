@@ -1,132 +1,80 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DiscordBot.Database;
 using DiscordBot.Database.Entities;
 using DiscordBot.Services.Scoped.Interfaces;
-using DiscordBot.Services.Structs;
 using Microsoft.EntityFrameworkCore;
 
 namespace DiscordBot.Services.Scoped;
 
 public class DbManagerService(AppDbContext dbContext) : IDbManagerService
 {
-    public async Task<DbResult<T?>> GetGuildBasedAsync<T>(ulong guildId, bool asNoTracking = true)
+    public async Task<T?> GetGuildBaseAsync<T>(ulong guildId, bool asNoTracking = true)
         where T : GuildBaseEntity
     {
-        try
-        {
-            var query = dbContext.Set<T>().AsQueryable();
-            if (asNoTracking) query = query.AsNoTracking();
+        var query = dbContext.Set<T>().AsQueryable();
 
-            var entity = await query.FirstOrDefaultAsync(x => x.GuildId == guildId);
-            return new DbResult<T?>(entity);
-        }
-        catch (Exception ex)
-        {
-            return new DbResult<T?>(ex);
-        }
+        if (asNoTracking)
+            query = query.AsNoTracking();
+
+        return await query.FirstOrDefaultAsync(e => e.GuildId == guildId);
     }
 
-    public async Task<DbResult<T?>> GetGuildAndIdBasedAsync<T>(ulong guildId, ulong id, bool asNoTracking = true)
+    public async Task<T?> GetGuildAndIdBaseAsync<T>(ulong guildId, int id, bool asNoTracking = true)
         where T : GuildAndIdBaseEntity
     {
-        try
-        {
-            var query = dbContext.Set<T>().AsQueryable();
-            if (asNoTracking) query = query.AsNoTracking();
+        var query = dbContext.Set<T>().AsQueryable();
 
-            var entity = await query.FirstOrDefaultAsync(x => x.GuildId == guildId && x.Id == id);
-            return new DbResult<T?>(entity);
-        }
-        catch (Exception ex)
-        {
-            return new DbResult<T?>(ex);
-        }
+        if (asNoTracking)
+            query = query.AsNoTracking();
+
+        return await query.FirstOrDefaultAsync(e => e.GuildId == guildId && e.Id == id);
     }
 
-    public async Task<DbResult<T?>> GetGuildAndUserBasedAsync<T>(ulong guildId, ulong userId,
-        bool asNoTracking = true)
+    public async Task<T?> GetGuildAndUserBaseAsync<T>(ulong guildId, ulong userId, bool asNoTracking = true)
         where T : GuildAndUserBaseEntity
     {
-        try
-        {
-            var query = dbContext.Set<T>().AsQueryable();
-            if (asNoTracking) query = query.AsNoTracking();
+        var query = dbContext.Set<T>().AsQueryable();
 
-            var entity = await query.FirstOrDefaultAsync(x => x.GuildId == guildId && x.UserId == userId);
-            return new DbResult<T?>(entity);
-        }
-        catch (Exception ex)
-        {
-            return new DbResult<T?>(ex);
-        }
+        if (asNoTracking)
+            query = query.AsNoTracking();
+
+        return await query.FirstOrDefaultAsync(e => e.GuildId == guildId && e.UserId == userId);
     }
 
-    public async Task<DbResult<List<T>?>> GetAllGuildBasedAsync<T>(ulong guildId, bool asNoTracking = true)
+    public async Task<List<T>?> GetAllGuildBaseAsync<T>(ulong guildId, bool asNoTracking = true)
         where T : GuildBaseEntity
     {
-        try
-        {
-            var query = dbContext.Set<T>().AsQueryable();
-            if (asNoTracking) query = query.AsNoTracking();
+        var query = dbContext.Set<T>().AsQueryable();
 
-            var list = await query.Where(x => x.GuildId == guildId).ToListAsync();
-            return new DbResult<List<T>?>(list);
-        }
-        catch (Exception ex)
-        {
-            return new DbResult<List<T>?>(ex);
-        }
+        if (asNoTracking)
+            query = query.AsNoTracking();
+
+        return await query.Where(e => e.GuildId == guildId).ToListAsync();
     }
 
-    public async Task<DbResult<bool>> AddOrUpdateAsync<T>(T entity) where T : class
+    public async Task<T?> AddAsync<T>(T entity)
+        where T : class
     {
-        try
-        {
-            var dbSet = dbContext.Set<T>();
-            var entry = dbContext.Entry(entity);
+        var entry = await dbContext.Set<T>().AddAsync(entity);
+        await dbContext.SaveChangesAsync();
+        return entry.Entity;
+    }
 
-            if (entry.State == EntityState.Detached)
-            {
-                var primaryKey = dbContext.Model
-                    .FindEntityType(typeof(T))?
-                    .FindPrimaryKey()?
-                    .Properties
-                    .Select(p => p.Name)
-                    .FirstOrDefault();
+    public async Task<T?> UpdateAsync<T>(T entity)
+        where T : class
+    {
+        dbContext.Set<T>().Update(entity);
+        await dbContext.SaveChangesAsync();
+        return entity;
+    }
 
-                if (primaryKey is not null)
-                {
-                    var keyProperty = typeof(T).GetProperty(primaryKey);
-                    var keyValue = keyProperty?.GetValue(entity);
-
-                    if (keyValue != null)
-                    {
-                        var existingEntity = await dbSet.FindAsync(keyValue);
-                        if (existingEntity is null)
-                            await dbSet.AddAsync(entity);
-                        else
-                            dbContext.Entry(existingEntity).CurrentValues.SetValues(entity);
-                    }
-                    else
-                    {
-                        await dbSet.AddAsync(entity);
-                    }
-                }
-                else
-                {
-                    await dbSet.AddAsync(entity);
-                }
-            }
-
-            await dbContext.SaveChangesAsync();
-            return new DbResult<bool>(true);
-        }
-        catch (Exception ex)
-        {
-            return new DbResult<bool>(ex);
-        }
+    public async Task<T?> DeleteAsync<T>(T entity)
+        where T : class
+    {
+        dbContext.Set<T>().Remove(entity);
+        await dbContext.SaveChangesAsync();
+        return entity;
     }
 }

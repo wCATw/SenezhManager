@@ -8,19 +8,12 @@ public class SettingsManagerService(IDbManagerService dbManager) : ISettingsMana
 {
     public async Task<SettingsEntity> GetSettingsAsync(ulong guildId, bool asNoTracking = true)
     {
-        var result = await dbManager.GetGuildBasedAsync<SettingsEntity>(guildId, asNoTracking);
-        if (!result.IsSuccess)
-            throw result.Exception!;
-
-        var entity = result.Result;
+        var entity = await dbManager.GetGuildBaseAsync<SettingsEntity>(guildId, asNoTracking);
 
         if (entity == null)
         {
             entity = new SettingsEntity { GuildId = guildId };
-
-            var addResult = await dbManager.AddOrUpdateAsync(entity);
-            if (!addResult.IsSuccess)
-                throw addResult.Exception!;
+            await dbManager.AddAsync(entity);
         }
 
         return entity;
@@ -31,9 +24,7 @@ public class SettingsManagerService(IDbManagerService dbManager) : ISettingsMana
         if (settingsEnt.GuildId == null)
             return false;
 
-        var result = await GetSettingsAsync(settingsEnt.GuildId.Value, false);
-        if (result == null)
-            return false;
+        var entity = await GetSettingsAsync(settingsEnt.GuildId.Value, false);
 
         var properties = typeof(SettingsEntity).GetProperties();
         foreach (var prop in properties)
@@ -42,10 +33,11 @@ public class SettingsManagerService(IDbManagerService dbManager) : ISettingsMana
 
             var newValue = prop.GetValue(settingsEnt);
             if (newValue != null)
-                prop.SetValue(result, newValue);
+                prop.SetValue(entity, newValue);
         }
 
-        var updateResult = await dbManager.AddOrUpdateAsync(result);
-        return updateResult.IsSuccess;
+        var result = await dbManager.UpdateAsync(entity);
+
+        return result != null;
     }
 }

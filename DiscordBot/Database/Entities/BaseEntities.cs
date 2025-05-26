@@ -10,7 +10,7 @@ public abstract class GuildBaseEntity
 
 public abstract class GuildAndIdBaseEntity : GuildBaseEntity
 {
-    [Display(Name = "SYSTEM")] public ulong? Id { get; set; }
+    [Display(Name = "SYSTEM")] public int? Id { get; set; }
 }
 
 public abstract class GuildAndUserBaseEntity : GuildBaseEntity
