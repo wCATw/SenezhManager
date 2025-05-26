@@ -9,8 +9,8 @@ using DiscordBot.Utils;
 
 namespace DiscordBot.Modules;
 
-[Group("настройки", "Модуль управления настройками.")]
-public class SettingsModule(ISettingsManagerService settingsManager) : InteractionModuleBase<SocketInteractionContext>
+[Group("настройки", "Управление настройками.")]
+public class SettingsGroup(ISettingsManagerService settingsManager) : InteractionModuleBase<SocketInteractionContext>
 {
     [SlashCommand("показать", "Показывает все настройки бота.")]
     public async Task ShowSettings()
