@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Discord.Interactions;
+using DiscordBot.Database.Entities;
 using DiscordBot.Models.InteractionModels;
 using DiscordBot.Services.Scoped.Interfaces;
 
@@ -28,50 +29,83 @@ public class EventManagerGroup(IEventManagerService eventManager) : InteractionM
 
             var result = await eventManager.TryDeleteEventTemplateAsync(Context.Guild.Id, event_template_id);
 
-            await FollowupAsync(result ? "Успешно!" : "Произошла ошибка службы.", ephemeral: true);
+            await FollowupAsync(
+                result
+                    ? $"Успешно удален шаблон c ID {event_template_id}!"
+                    : $"Произошла ошибка при удалении шаблона с ID {event_template_id}.", ephemeral: true);
         }
 
         [SlashCommand("изменить", "Изменяет шаблон события через форму.")]
-        public async Task UpdateTemplate(int event_id)
+        public async Task UpdateTemplate(int event_template_id)
         {
-            await RespondWithModalAsync<EventTemplateModel>($"update_event_template_form:{event_id}");
-        }
+            var checkResult = await eventManager.GetEventTemplateAsync(Context.Guild.Id, event_template_id);
 
-        #region Повторяемость
-
-        [Group("повторяемость", "Управления шаблонами событий.")]
-        public class EventManagerTemplateRepeatabilityGroup(IEventManagerService eventManager)
-            : InteractionModuleBase<SocketInteractionContext>
-        {
-            [SlashCommand("назначить", "Назначает повторяемость шаблонному событию.")]
-            public async Task SetRepeatability()
+            if (checkResult == null)
             {
-                throw new NotImplementedException();
+                await RespondAsync("Шаблон с таким ID не найден!", ephemeral: true);
+                return;
             }
 
-            [SlashCommand("убрать", "Убирает повторяемость шаблонному событию.")]
-            public async Task RemoveRepeatability()
-            {
-                throw new NotImplementedException();
-            }
+            await RespondWithModalAsync<EventTemplateModel>($"update_event_template_form:{event_template_id}");
         }
-
-        #endregion
 
         #region Обработка форм
 
-        [ModalInteraction("create_event_template_form")]
-        public async Task HandleCreateEventTemplate(EventTemplateModel modal)
+        [ModalInteraction("create_event_template_form", true)]
+        public async Task HandleCreateEventTemplateForm(EventTemplateModel modal)
         {
             await DeferAsync(true);
-            await FollowupAsync("METHOD_NOT_IMPLEMENTED", ephemeral: true);
+
+            var entity = new EventTemplateEntity
+            {
+                GuildId = Context.Guild.Id,
+                Title = modal.TitleInput,
+                Description = modal.DescriptionInput,
+                CreationDateTime = DateTime.Now
+            };
+
+            var result = await eventManager.TryAddEventTemplateAsync(entity);
+
+            if (!result)
+            {
+                await FollowupAsync("Произошла ошибка при создании шаблона события!", ephemeral: true);
+                return;
+            }
+
+            await FollowupAsync("Шаблон события успешно создан!", ephemeral: true);
         }
 
-        [ModalInteraction("update_event_template_form")]
-        public async Task HandleUpdateEventTemplate(EventTemplateModel modal, int eventId)
+        [ModalInteraction("update_event_template_form:*", true, TreatAsRegex = true)]
+        public async Task HandleUpdateEventTemplateForm(EventTemplateModel modal)
         {
             await DeferAsync(true);
-            await FollowupAsync("METHOD_NOT_IMPLEMENTED", ephemeral: true);
+
+            var interactionData = Context.Interaction.Data;
+            var prop = interactionData.GetType().GetProperty("CustomId");
+            var customData = prop!.GetValue(interactionData) as string;
+            var args = customData!.Split(":");
+            var eventTemplateId = int.Parse(args[1]);
+
+            var entity = await eventManager.GetEventTemplateAsync(Context.Guild.Id, eventTemplateId);
+
+            entity = new EventTemplateEntity
+            {
+                GuildId = Context.Guild.Id,
+                Id = eventTemplateId,
+                Title = modal.TitleInput == "-" ? entity!.Title : modal.TitleInput,
+                Description = modal.DescriptionInput == "-" ? entity!.Description : modal.DescriptionInput
+            };
+
+            var result = await eventManager.TryUpdateEventTemplateAsync(entity);
+
+            if (!result)
+            {
+                await FollowupAsync($"Произошла ошибка при изменении шаблона события с ID \"{eventTemplateId}\"",
+                    ephemeral: true);
+                return;
+            }
+
+            await FollowupAsync($"Шаблон события с ID \"{eventTemplateId}\" успешно изменено!", ephemeral: true);
         }
 
         #endregion
