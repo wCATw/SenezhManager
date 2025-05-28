@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
-using DiscordBot.Database.Entities;
+using DiscordBot.Database;
 using DiscordBot.Services.Scoped.Interfaces;
 using DiscordBot.Utils;
 
@@ -20,19 +20,19 @@ public class SettingsGroup(ISettingsManagerService settingsManager) : Interactio
         var settings = await settingsManager.GetSettingsAsync(Context.Guild.Id) ?? new SettingsEntity();
 
         var embedBuilder = new EmbedBuilder()
-            .WithTitle("Текущие настройки")
-            .WithColor(Color.Blue);
+                           .WithTitle("Текущие настройки")
+                           .WithColor(Color.Blue);
 
         foreach (var member in typeof(SettingsEntity).GetUserVisibleMembers())
         {
             var value = member switch
             {
                 PropertyInfo prop => prop.GetValue(settings),
-                FieldInfo field => field.GetValue(settings),
-                _ => null
+                FieldInfo field   => field.GetValue(settings),
+                _                 => null
             };
 
-            var displayName = DisplayHelper.GetDisplayName(member);
+            var displayName  = DisplayHelper.GetDisplayName(member);
             var displayValue = value != null ? value.ToString() : "*не установлено*";
 
             embedBuilder.AddField(displayName, displayValue, true);
@@ -70,7 +70,7 @@ public class SettingsGroup(ISettingsManagerService settingsManager) : Interactio
         catch
         {
             await FollowupAsync($"Не удалось преобразовать значение `{value}` для поля `{displayName}`.",
-                ephemeral: true);
+                                ephemeral: true);
             return;
         }
 

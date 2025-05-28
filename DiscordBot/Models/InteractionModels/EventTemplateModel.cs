@@ -10,8 +10,7 @@ public class EventTemplateModel : IModal
     public required string TitleInput { get; set; }
 
     [InputLabel("Описание")]
-    [ModalTextInput("description_input", TextInputStyle.Paragraph,
-        "Игра <timestamp>. Сбор в TS RBC за 30 минут до начала...")]
+    [ModalTextInput("description_input", TextInputStyle.Paragraph, "Игра <timestamp>. Сбор в TS RBC за 30 минут до начала...")]
     public required string DescriptionInput { get; set; }
 
     public string Title => "Форма шаблона события";

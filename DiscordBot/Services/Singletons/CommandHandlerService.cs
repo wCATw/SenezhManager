@@ -20,34 +20,34 @@ internal sealed class CommandHandlerService(
 
         client.InteractionCreated += HandleInteraction;
 
-        interactionService.SlashCommandExecuted += SlashCommandExecuted;
-        interactionService.ContextCommandExecuted += ContextCommandExecuted;
+        interactionService.SlashCommandExecuted     += SlashCommandExecuted;
+        interactionService.ContextCommandExecuted   += ContextCommandExecuted;
         interactionService.ComponentCommandExecuted += ComponentCommandExecuted;
-        interactionService.ModalCommandExecuted += ModalCommandExecuted;
+        interactionService.ModalCommandExecuted     += ModalCommandExecuted;
 
         logger.LogInformation("Hooking commands");
     }
 
     private async Task ComponentCommandExecuted(ComponentCommandInfo componentCommandInfo,
-        IInteractionContext interactionContext, IResult result)
+                                                IInteractionContext interactionContext, IResult result)
     {
         await HandleResult(interactionContext, result);
     }
 
     private async Task ModalCommandExecuted(ModalCommandInfo modalCommandInfo, IInteractionContext interactionContext,
-        IResult result)
+                                            IResult result)
     {
         await HandleResult(interactionContext, result);
     }
 
     private async Task ContextCommandExecuted(ContextCommandInfo contextCommandInfo,
-        IInteractionContext interactionContext, IResult result)
+                                              IInteractionContext interactionContext, IResult result)
     {
         await HandleResult(interactionContext, result);
     }
 
     private async Task SlashCommandExecuted(SlashCommandInfo slashCommand, IInteractionContext interactionContext,
-        IResult result)
+                                            IResult result)
     {
         await HandleResult(interactionContext, result);
     }
@@ -59,16 +59,18 @@ internal sealed class CommandHandlerService(
             var execResult = (ExecuteResult)result;
             logger.LogError($"{execResult.ErrorReason}\n{execResult.Exception}");
 #if DEBUG
-            var errorStr = $"```{execResult.ErrorReason}\n{execResult.Exception}```";
+            var errorStr = $"# Ошибка!\n```js\n{execResult.ErrorReason}\n{execResult.Exception}\n```";
 
             if (errorStr.Length > 2000)
             {
-                await interactionContext.Interaction.RespondAsync("Ошибка обработки команды больше 2000 символов.",
-                    ephemeral: true);
+                await interactionContext.Interaction.FollowupAsync("Ошибка больше 2000 символов, не могу обработать..",
+                                                                   ephemeral: true);
                 return;
             }
 
-            await interactionContext.Interaction.RespondAsync(errorStr, ephemeral: true);
+            await interactionContext.Interaction.FollowupAsync(errorStr, ephemeral: true);
+#else
+            await interactionContext.Interaction.FollowupAsync("Произошла ошибка!", ephemeral: true);
 #endif
         }
     }
@@ -85,20 +87,22 @@ internal sealed class CommandHandlerService(
             if (socketInteraction.Type == InteractionType.ApplicationCommand)
             {
                 await socketInteraction.GetOriginalResponseAsync()
-                    .ContinueWith(async msg => await msg.Result.DeleteAsync());
+                                       .ContinueWith(async msg => await msg.Result.DeleteAsync());
 
                 logger.LogError(e.ToString());
 #if DEBUG
-                var errorStr = $"```{e}```";
+                var errorStr = $"# Ошибка!\n```js\n{e}\n```";
 
                 if (errorStr.Length > 2000)
                 {
-                    await socketInteraction.RespondAsync("Ошибка обработки команды больше 2000 символов.",
-                        ephemeral: true);
+                    await socketInteraction.FollowupAsync("Ошибка больше 2000 символов, не могу обработать..",
+                                                          ephemeral: true);
                     return;
                 }
 
-                await socketInteraction.RespondAsync(errorStr, ephemeral: true);
+                await socketInteraction.FollowupAsync(errorStr, ephemeral: true);
+#else
+                await socketInteraction.FollowupAsync("Произошла ошибка!", ephemeral: true);
 #endif
             }
         }

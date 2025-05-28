@@ -15,14 +15,12 @@ namespace DiscordBot.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.5");
 
-            modelBuilder.Entity("DiscordBot.Database.Entities.EventEntity", b =>
+            modelBuilder.Entity("DiscordBot.Database.EventEntity", b =>
                 {
-                    b.Property<ulong>("GuildId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong>("Id")
+                    b.Property<int>("InternalId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<ulong?>("ChannelId")
@@ -37,38 +35,49 @@ namespace DiscordBot.Migrations
                     b.Property<DateTime?>("EventDateTime")
                         .HasColumnType("TEXT");
 
+                    b.Property<ulong?>("GuildId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
                     b.Property<ulong?>("MessageId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("GuildId", "Id");
+                    b.HasKey("InternalId");
 
                     b.HasIndex("GuildId", "Id")
-                        .IsUnique();
-
-                    b.HasIndex("GuildId", "ChannelId", "MessageId")
                         .IsUnique();
 
                     b.ToTable("events");
                 });
 
-            modelBuilder.Entity("DiscordBot.Database.Entities.EventRepeatabilityEntity", b =>
+            modelBuilder.Entity("DiscordBot.Database.EventRepeatabilityEntity", b =>
                 {
-                    b.Property<ulong>("GuildId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong>("Id")
+                    b.Property<int>("InternalId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("DayOfWeek")
                         .HasColumnType("INTEGER");
 
+                    b.Property<ulong?>("GuildId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("Id")
+                        .HasColumnType("INTEGER");
+
                     b.Property<TimeSpan?>("Time")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("GuildId", "Id");
+                    b.HasKey("InternalId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
 
                     b.HasIndex("GuildId", "Id")
                         .IsUnique();
@@ -76,12 +85,10 @@ namespace DiscordBot.Migrations
                     b.ToTable("event_repeatability");
                 });
 
-            modelBuilder.Entity("DiscordBot.Database.Entities.EventTemplateEntity", b =>
+            modelBuilder.Entity("DiscordBot.Database.EventTemplateEntity", b =>
                 {
-                    b.Property<ulong>("GuildId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong>("Id")
+                    b.Property<int>("InternalId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("CreationDateTime")
@@ -90,10 +97,17 @@ namespace DiscordBot.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
+                    b.Property<ulong?>("GuildId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Title")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("GuildId", "Id");
+                    b.HasKey("InternalId");
 
                     b.HasIndex("GuildId", "Id")
                         .IsUnique();
@@ -101,19 +115,16 @@ namespace DiscordBot.Migrations
                     b.ToTable("event_templates");
                 });
 
-            modelBuilder.Entity("DiscordBot.Database.Entities.SettingsEntity", b =>
+            modelBuilder.Entity("DiscordBot.Database.SettingsEntity", b =>
                 {
-                    b.Property<ulong>("GuildId")
+                    b.Property<int>("InternalId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<ulong?>("ScheduleChannelId")
+                    b.Property<ulong?>("GuildId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<ulong?>("ScheduleMessageId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("GuildId");
+                    b.HasKey("InternalId");
 
                     b.HasIndex("GuildId")
                         .IsUnique();
@@ -121,20 +132,19 @@ namespace DiscordBot.Migrations
                     b.ToTable("settings");
                 });
 
-            modelBuilder.Entity("DiscordBot.Database.Entities.EventRepeatabilityEntity", b =>
+            modelBuilder.Entity("DiscordBot.Database.EventRepeatabilityEntity", b =>
                 {
-                    b.HasOne("DiscordBot.Database.Entities.EventTemplateEntity", "EventEntity")
-                        .WithOne("RepeatabilityEntity")
-                        .HasForeignKey("DiscordBot.Database.Entities.EventRepeatabilityEntity", "GuildId", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("DiscordBot.Database.EventTemplateEntity", "EventTemplateEntity")
+                        .WithOne("EventRepeatabilityEntity")
+                        .HasForeignKey("DiscordBot.Database.EventRepeatabilityEntity", "Id")
+                        .HasPrincipalKey("DiscordBot.Database.EventTemplateEntity", "Id");
 
-                    b.Navigation("EventEntity");
+                    b.Navigation("EventTemplateEntity");
                 });
 
-            modelBuilder.Entity("DiscordBot.Database.Entities.EventTemplateEntity", b =>
+            modelBuilder.Entity("DiscordBot.Database.EventTemplateEntity", b =>
                 {
-                    b.Navigation("RepeatabilityEntity");
+                    b.Navigation("EventRepeatabilityEntity");
                 });
 #pragma warning restore 612, 618
         }

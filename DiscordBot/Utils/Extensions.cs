@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace DiscordBot.Utils;
 
-public static class MemberInfoExtensions
+internal static class MemberInfoExtensions
 {
     public static bool IsSystemField(this MemberInfo member)
     {
@@ -20,14 +20,14 @@ public static class MemberInfoExtensions
 internal static class HostBuilderExtensions
 {
     public static IHostBuilder ConfigureDiscord(this IHostBuilder builder,
-        Action<DiscordSocketConfig, InteractionServiceConfig> configureOptions)
+                                                Action<DiscordSocketConfig, InteractionServiceConfig> configureOptions)
     {
-        var clientConfig = new DiscordSocketConfig();
+        var clientConfig      = new DiscordSocketConfig();
         var interactionConfig = new InteractionServiceConfig();
 
         configureOptions(clientConfig, interactionConfig);
 
-        var client = new DiscordSocketClient(clientConfig);
+        var client      = new DiscordSocketClient(clientConfig);
         var interaction = new InteractionService(client, interactionConfig);
 
         builder.ConfigureServices(services =>
@@ -42,7 +42,7 @@ internal static class HostBuilderExtensions
     }
 
     public static IHostBuilder ConfigureCommands(this IHostBuilder builder,
-        Action<CommandServiceConfig> configureOptions)
+                                                 Action<CommandServiceConfig> configureOptions)
     {
         var config = new CommandServiceConfig();
 

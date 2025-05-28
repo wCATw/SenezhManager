@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Discord;
 using Discord.Interactions;
-using DiscordBot.Database.Entities;
+using DiscordBot.Database;
 using DiscordBot.Models.InteractionModels;
 using DiscordBot.Services.Scoped.Interfaces;
 
@@ -10,7 +11,7 @@ namespace DiscordBot.Modules;
 [Group("событие", "Менеджер событий.")]
 public class EventManagerGroup(IEventManagerService eventManager) : InteractionModuleBase<SocketInteractionContext>
 {
-    #region Шаблон
+#region Шаблон
 
     [Group("шаблон", "Управление шаблонами событий.")]
     public class EventManagerTemplateGroup(IEventManagerService eventManager)
@@ -30,9 +31,9 @@ public class EventManagerGroup(IEventManagerService eventManager) : InteractionM
             var result = await eventManager.TryDeleteEventTemplateAsync(Context.Guild.Id, event_template_id);
 
             await FollowupAsync(
-                result
-                    ? $"Успешно удален шаблон c ID {event_template_id}!"
-                    : $"Произошла ошибка при удалении шаблона с ID {event_template_id}.", ephemeral: true);
+                                result
+                                    ? $"Успешно удален шаблон c ID {event_template_id}!"
+                                    : $"Произошла ошибка при удалении шаблона с ID {event_template_id}.", ephemeral: true);
         }
 
         [SlashCommand("изменить", "Изменяет шаблон события через форму.")]
@@ -49,7 +50,18 @@ public class EventManagerGroup(IEventManagerService eventManager) : InteractionM
             await RespondWithModalAsync<EventTemplateModel>($"update_event_template_form:{event_template_id}");
         }
 
-        #region Обработка форм
+        [SlashCommand("список", "Выводит списком все существующие шаблоны событий.")]
+        public async Task ListTemplates(int event_template_id)
+        {
+            await DeferAsync(true);
+
+
+            var embed = new EmbedBuilder();
+
+            await FollowupAsync(embed: embed.Build(), ephemeral: true);
+        }
+
+#region Обработка форм
 
         [ModalInteraction("create_event_template_form", true)]
         public async Task HandleCreateEventTemplateForm(EventTemplateModel modal)
@@ -58,9 +70,9 @@ public class EventManagerGroup(IEventManagerService eventManager) : InteractionM
 
             var entity = new EventTemplateEntity
             {
-                GuildId = Context.Guild.Id,
-                Title = modal.TitleInput,
-                Description = modal.DescriptionInput,
+                GuildId          = Context.Guild.Id,
+                Title            = modal.TitleInput,
+                Description      = modal.DescriptionInput,
                 CreationDateTime = DateTime.Now
             };
 
@@ -81,18 +93,18 @@ public class EventManagerGroup(IEventManagerService eventManager) : InteractionM
             await DeferAsync(true);
 
             var interactionData = Context.Interaction.Data;
-            var prop = interactionData.GetType().GetProperty("CustomId");
-            var customData = prop!.GetValue(interactionData) as string;
-            var args = customData!.Split(":");
+            var prop            = interactionData.GetType().GetProperty("CustomId");
+            var customData      = prop!.GetValue(interactionData) as string;
+            var args            = customData!.Split(":");
             var eventTemplateId = int.Parse(args[1]);
 
             var entity = await eventManager.GetEventTemplateAsync(Context.Guild.Id, eventTemplateId);
 
             entity = new EventTemplateEntity
             {
-                GuildId = Context.Guild.Id,
-                Id = eventTemplateId,
-                Title = modal.TitleInput == "-" ? entity!.Title : modal.TitleInput,
+                GuildId     = Context.Guild.Id,
+                Id          = eventTemplateId,
+                Title       = modal.TitleInput == "-" ? entity!.Title : modal.TitleInput,
                 Description = modal.DescriptionInput == "-" ? entity!.Description : modal.DescriptionInput
             };
 
@@ -101,15 +113,15 @@ public class EventManagerGroup(IEventManagerService eventManager) : InteractionM
             if (!result)
             {
                 await FollowupAsync($"Произошла ошибка при изменении шаблона события с ID \"{eventTemplateId}\"",
-                    ephemeral: true);
+                                    ephemeral: true);
                 return;
             }
 
             await FollowupAsync($"Шаблон события с ID \"{eventTemplateId}\" успешно изменено!", ephemeral: true);
         }
 
-        #endregion
+#endregion
     }
 
-    #endregion
+#endregion
 }

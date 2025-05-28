@@ -1,147 +1,178 @@
 ﻿using System;
-using System.Reflection;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
-using DiscordBot.Database.Entities;
+using DiscordBot.Database;
 using DiscordBot.Services.Scoped.Interfaces;
+using DiscordBot.Utils;
 
 namespace DiscordBot.Services.Scoped;
 
 public class EventManagerService(IDbManagerService dbManager) : IEventManagerService
 {
-    #region EventTemplate
+    private bool _disposed;
 
     public async Task<bool> TryAddEventTemplateAsync(EventTemplateEntity eventTemplateEnt)
     {
-        return await AddEntityAsync(eventTemplateEnt);
+        if (eventTemplateEnt.GuildId == null)
+            return false;
+
+        eventTemplateEnt.Id = await ServicesHelper.GenerateNextIdForGuild<EventEntity>(dbManager.DbContext, eventTemplateEnt.GuildId.Value);
+
+        var result = await dbManager.AddAsync(eventTemplateEnt);
+        return result != null;
     }
 
     public async Task<bool> TryUpdateEventTemplateAsync(EventTemplateEntity eventTemplateEnt)
     {
-        return await UpdateEntityAsync(eventTemplateEnt, (existing, incoming) =>
-        {
-            PatchEntity(existing, incoming);
-            if (incoming.RepeatabilityEntity != null)
-            {
-                existing.RepeatabilityEntity ??= new EventRepeatabilityEntity
-                    { GuildId = existing.GuildId, Id = incoming.RepeatabilityEntity.Id };
-                PatchEntity(existing.RepeatabilityEntity, incoming.RepeatabilityEntity);
-            }
-        });
+        if (eventTemplateEnt.GuildId == null || eventTemplateEnt.Id == null)
+            return false;
+
+        var entity = await GetEventTemplateAsync(eventTemplateEnt.GuildId.Value, eventTemplateEnt.Id.Value, false, false);
+
+        if (entity?.InternalId == null)
+            return false;
+
+        ServicesHelper.PatchEntity(eventTemplateEnt, ref entity);
+
+        var result = await dbManager.UpdateAsync(entity);
+        return result != null;
     }
 
-    public async Task<EventTemplateEntity?> GetEventTemplateAsync(ulong guildId, int eventTemplateId,
-        bool asNoTracking = true)
+    public async Task<EventTemplateEntity?> GetEventTemplateAsync(ulong guildId, int eventTemplateId, bool includeRepeatability = false, bool asNoTracking = true)
     {
-        return await dbManager.GetGuildAndIdBaseAsync<EventTemplateEntity>(guildId, eventTemplateId, asNoTracking);
+        var includes = includeRepeatability
+            ? new Expression<Func<EventTemplateEntity, object>>[] { e => e.EventRepeatabilityEntity! }
+            : Array.Empty<Expression<Func<EventTemplateEntity, object>>>();
+
+        return await dbManager.GetGuildAndIdBaseEntityAsync(guildId, eventTemplateId, asNoTracking, includes);
+    }
+
+    public Task<List<EventTemplateEntity>> GetEventTemplatesAsync(ulong guildId)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<bool> TryDeleteEventTemplateAsync(ulong guildId, int eventTemplateId)
     {
-        return await DeleteEntityAsync<EventTemplateEntity>(guildId, eventTemplateId);
+        var entity = await GetEventTemplateAsync(guildId, eventTemplateId, false, false);
+
+        if (entity?.InternalId == null)
+            return false;
+
+        return await dbManager.DeleteAsync<EventTemplateEntity>(entity.InternalId.Value);
     }
-
-    #endregion
-
-    #region Event
 
     public async Task<bool> TryAddEventAsync(EventEntity eventEnt)
     {
-        return await AddEntityAsync(eventEnt);
+        if (eventEnt.GuildId == null)
+            return false;
+
+        eventEnt.Id = await ServicesHelper.GenerateNextIdForGuild<EventEntity>(dbManager.DbContext, eventEnt.GuildId.Value);
+
+        var result = await dbManager.AddAsync(eventEnt);
+        return result != null;
     }
 
     public async Task<bool> TryUpdateEventAsync(EventEntity eventEnt)
     {
-        return await UpdateEntityAsync(eventEnt, PatchEntity);
+        if (eventEnt.GuildId == null || eventEnt.Id == null)
+            return false;
+
+        var entity = await GetEventAsync(eventEnt.GuildId.Value, eventEnt.Id.Value, false);
+
+        if (entity?.InternalId == null)
+            return false;
+
+        ServicesHelper.PatchEntity(eventEnt, ref entity);
+
+        var result = await dbManager.UpdateAsync(entity);
+        return result != null;
     }
 
     public async Task<EventEntity?> GetEventAsync(ulong guildId, int eventId, bool asNoTracking = true)
     {
-        return await dbManager.GetGuildAndIdBaseAsync<EventEntity>(guildId, eventId, asNoTracking);
+        return await dbManager.GetGuildAndIdBaseEntityAsync<EventEntity>(guildId, eventId, asNoTracking);
+    }
+
+    public Task<List<EventTemplateEntity>> GetEventsAsync(ulong guildId)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<bool> TryDeleteEventAsync(ulong guildId, int eventId)
     {
-        return await DeleteEntityAsync<EventEntity>(guildId, eventId);
+        var entity = await GetEventAsync(guildId, eventId, false);
+
+        if (entity?.InternalId == null)
+            return false;
+
+        return await dbManager.DeleteAsync<EventEntity>(entity.InternalId.Value);
     }
-
-    #endregion
-
-    #region EventRepeatability
 
     public async Task<bool> TryAddEventRepeatabilityAsync(EventRepeatabilityEntity eventRepeatEnt)
     {
-        return await AddEntityAsync(eventRepeatEnt);
+        if (eventRepeatEnt.GuildId == null || eventRepeatEnt.Id == null)
+            return false;
+
+        var result = await dbManager.AddAsync(eventRepeatEnt);
+        return result != null;
     }
 
     public async Task<bool> TryUpdateEventRepeatabilityAsync(EventRepeatabilityEntity eventRepeatEnt)
     {
-        return await UpdateEntityAsync(eventRepeatEnt, PatchEntity);
+        if (eventRepeatEnt.GuildId == null || eventRepeatEnt.Id == null)
+            return false;
+
+        var entity = await GetEventRepeatabilityAsync(eventRepeatEnt.GuildId.Value, eventRepeatEnt.Id.Value, false, false);
+
+        if (entity?.InternalId == null)
+            return false;
+
+        ServicesHelper.PatchEntity(eventRepeatEnt, ref entity);
+
+        var result = await dbManager.UpdateAsync(entity);
+        return result != null;
     }
 
-    public async Task<EventRepeatabilityEntity?> GetEventRepeatabilityAsync(ulong guildId, int eventRepeatId,
-        bool asNoTracking = true)
+    public async Task<EventRepeatabilityEntity?> GetEventRepeatabilityAsync(ulong guildId, int eventTemplateId, bool includeTemplate = false, bool asNoTracking = true)
     {
-        return await dbManager.GetGuildAndIdBaseAsync<EventRepeatabilityEntity>(guildId, eventRepeatId, asNoTracking);
+        var includes = includeTemplate
+            ? new Expression<Func<EventRepeatabilityEntity, object>>[] { r => r.EventTemplateEntity! }
+            : Array.Empty<Expression<Func<EventRepeatabilityEntity, object>>>();
+
+        return await dbManager.GetGuildAndIdBaseEntityAsync(guildId, eventTemplateId, asNoTracking, includes);
+    }
+
+    public Task<List<EventTemplateEntity>> GetEventRepeatabilitiesAsync(ulong guildId)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<bool> TryDeleteEventRepeatabilityAsync(ulong guildId, int eventRepeatId)
     {
-        return await DeleteEntityAsync<EventRepeatabilityEntity>(guildId, eventRepeatId);
-    }
-
-    #endregion
-
-    #region Helpers
-
-    private async Task<bool> AddEntityAsync<T>(T entity) where T : GuildAndIdBaseEntity
-    {
-        var result = await dbManager.AddAsync(entity);
-        return result != null;
-    }
-
-    private async Task<bool> UpdateEntityAsync<T>(T incoming, Action<T, T> patchAction) where T : GuildAndIdBaseEntity
-    {
-        if (incoming.GuildId is null || incoming.Id is null)
+        var entity = await dbManager.GetGuildAndIdBaseEntityAsync<EventRepeatabilityEntity>(guildId, eventRepeatId, false);
+        if (entity?.InternalId == null)
             return false;
 
-        var existing = await dbManager.GetGuildAndIdBaseAsync<T>(incoming.GuildId.Value, incoming.Id.Value, false);
-        if (existing == null)
-            return false;
-
-        patchAction(existing, incoming);
-
-        var result = await dbManager.UpdateAsync(existing);
-        return result != null;
+        return await dbManager.DeleteAsync<EventRepeatabilityEntity>(entity.InternalId.Value);
     }
 
-    private async Task<bool> DeleteEntityAsync<T>(ulong guildId, int id)
-        where T : GuildAndIdBaseEntity
+    public void Dispose()
     {
-        var entity = await dbManager.GetGuildAndIdBaseAsync<T>(guildId, id, false);
-        if (entity == null)
-            return false;
+        if (_disposed)
+            return;
 
-        var result = await dbManager.DeleteAsync(entity);
-        return result != null;
+        dbManager.Dispose();
+        _disposed = true;
     }
 
-    private static void PatchEntity<T>(T target, T incoming)
+    public async ValueTask DisposeAsync()
     {
-        var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        if (_disposed)
+            return;
 
-        foreach (var prop in props)
-        {
-            if (!prop.CanWrite || prop.Name is "GuildId" or "Id" or "UserId") continue;
-
-            var newValue = prop.GetValue(incoming);
-
-            if (prop.PropertyType == typeof(string) && (string?)newValue == "-")
-                continue;
-
-            if (newValue != null)
-                prop.SetValue(target, newValue);
-        }
+        await dbManager.DisposeAsync();
+        _disposed = true;
     }
-
-    #endregion
 }

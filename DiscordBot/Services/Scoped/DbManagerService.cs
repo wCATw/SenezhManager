@@ -1,80 +1,132 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using DiscordBot.Database;
-using DiscordBot.Database.Entities;
 using DiscordBot.Services.Scoped.Interfaces;
+using DiscordBot.Utils;
 using Microsoft.EntityFrameworkCore;
 
 namespace DiscordBot.Services.Scoped;
 
 public class DbManagerService(AppDbContext dbContext) : IDbManagerService
 {
-    public async Task<T?> GetGuildBaseAsync<T>(ulong guildId, bool asNoTracking = true)
-        where T : GuildBaseEntity
-    {
-        var query = dbContext.Set<T>().AsQueryable();
+    private bool _disposed;
 
-        if (asNoTracking)
-            query = query.AsNoTracking();
+    public AppDbContext DbContext => dbContext;
+
+    public async Task<T?> GetBaseEntityAsync<T>(int internalId, bool asNoTracking = true, params Expression<Func<T, object>>[] includes) where T : BaseEntity
+    {
+        var query = ServicesHelper.BuildQuery(dbContext, asNoTracking, includes);
+
+        return await query.FirstOrDefaultAsync(e => e.InternalId == internalId);
+    }
+
+    public async Task<T?> GetGuildBaseEntityAsync<T>(ulong guildId, bool asNoTracking = true, params Expression<Func<T, object>>[] includes) where T : GuildBaseEntity
+    {
+        var query = ServicesHelper.BuildQuery(dbContext, asNoTracking, includes);
 
         return await query.FirstOrDefaultAsync(e => e.GuildId == guildId);
     }
 
-    public async Task<T?> GetGuildAndIdBaseAsync<T>(ulong guildId, int id, bool asNoTracking = true)
+    public async Task<T?> GetGuildAndIdBaseEntityAsync<T>(ulong guildId, int id, bool asNoTracking = true, params Expression<Func<T, object>>[] includes)
         where T : GuildAndIdBaseEntity
     {
-        var query = dbContext.Set<T>().AsQueryable();
-
-        if (asNoTracking)
-            query = query.AsNoTracking();
+        var query = ServicesHelper.BuildQuery(dbContext, asNoTracking, includes);
 
         return await query.FirstOrDefaultAsync(e => e.GuildId == guildId && e.Id == id);
     }
 
-    public async Task<T?> GetGuildAndUserBaseAsync<T>(ulong guildId, ulong userId, bool asNoTracking = true)
+    public async Task<T?> GetGuildAndUserBaseEntityAsync<T>(ulong guildId, ulong userId, bool asNoTracking = true, params Expression<Func<T, object>>[] includes)
         where T : GuildAndUserBaseEntity
     {
-        var query = dbContext.Set<T>().AsQueryable();
-
-        if (asNoTracking)
-            query = query.AsNoTracking();
+        var query = ServicesHelper.BuildQuery(dbContext, asNoTracking, includes);
 
         return await query.FirstOrDefaultAsync(e => e.GuildId == guildId && e.UserId == userId);
     }
 
-    public async Task<List<T>?> GetAllGuildBaseAsync<T>(ulong guildId, bool asNoTracking = true)
-        where T : GuildBaseEntity
+    public async Task<List<T>> GetAllGuildBaseEntitiesAsync<T>(ulong guildId, bool asNoTracking = true, params Expression<Func<T, object>>[] includes) where T : GuildBaseEntity
     {
-        var query = dbContext.Set<T>().AsQueryable();
-
-        if (asNoTracking)
-            query = query.AsNoTracking();
+        var query = ServicesHelper.BuildQuery(dbContext, asNoTracking, includes);
 
         return await query.Where(e => e.GuildId == guildId).ToListAsync();
     }
 
-    public async Task<T?> AddAsync<T>(T entity)
-        where T : class
+    public async Task<T?> AddAsync<T>(T entity) where T : BaseEntity
     {
-        var entry = await dbContext.Set<T>().AddAsync(entity);
-        await dbContext.SaveChangesAsync();
-        return entry.Entity;
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            await dbContext.Set<T>().AddAsync(entity);
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return entity;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            return null;
+        }
     }
 
-    public async Task<T?> UpdateAsync<T>(T entity)
-        where T : class
+    public async Task<T?> UpdateAsync<T>(T entity) where T : BaseEntity
     {
-        dbContext.Set<T>().Update(entity);
-        await dbContext.SaveChangesAsync();
-        return entity;
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            var existing = await dbContext.Set<T>().FindAsync(entity.InternalId);
+            if (existing == null)
+                throw new InvalidOperationException($"Entity with InternalId {entity.InternalId} not found");
+
+            dbContext.Entry(existing).CurrentValues.SetValues(entity);
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return entity;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            return null;
+        }
     }
 
-    public async Task<T?> DeleteAsync<T>(T entity)
-        where T : class
+    public async Task<bool> DeleteAsync<T>(int internalId) where T : BaseEntity
     {
-        dbContext.Set<T>().Remove(entity);
-        await dbContext.SaveChangesAsync();
-        return entity;
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            var entity = await dbContext.Set<T>().FindAsync(internalId);
+            if (entity == null)
+                return false;
+
+            dbContext.Set<T>().Remove(entity);
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            return false;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        dbContext.Dispose();
+        _disposed = true;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+            return;
+
+        await dbContext.DisposeAsync();
+        _disposed = true;
     }
 }

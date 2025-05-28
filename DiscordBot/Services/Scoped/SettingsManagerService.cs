@@ -1,20 +1,23 @@
 ﻿using System.Threading.Tasks;
-using DiscordBot.Database.Entities;
+using DiscordBot.Database;
 using DiscordBot.Services.Scoped.Interfaces;
+using DiscordBot.Utils;
 
 namespace DiscordBot.Services.Scoped;
 
 public class SettingsManagerService(IDbManagerService dbManager) : ISettingsManagerService
 {
+    private bool _disposed;
+
     public async Task<SettingsEntity> GetSettingsAsync(ulong guildId, bool asNoTracking = true)
     {
-        var entity = await dbManager.GetGuildBaseAsync<SettingsEntity>(guildId, asNoTracking);
+        var entity = await dbManager.GetGuildBaseEntityAsync<SettingsEntity>(guildId, asNoTracking);
 
-        if (entity == null)
-        {
-            entity = new SettingsEntity { GuildId = guildId };
-            await dbManager.AddAsync(entity);
-        }
+        if (entity != null)
+            return entity;
+
+        entity = new SettingsEntity { GuildId = guildId };
+        await dbManager.AddAsync(entity);
 
         return entity;
     }
@@ -26,18 +29,28 @@ public class SettingsManagerService(IDbManagerService dbManager) : ISettingsMana
 
         var entity = await GetSettingsAsync(settingsEnt.GuildId.Value, false);
 
-        var properties = typeof(SettingsEntity).GetProperties();
-        foreach (var prop in properties)
-        {
-            if (prop.Name == nameof(SettingsEntity.GuildId)) continue;
-
-            var newValue = prop.GetValue(settingsEnt);
-            if (newValue != null)
-                prop.SetValue(entity, newValue);
-        }
+        ServicesHelper.PatchEntity(settingsEnt, ref entity);
 
         var result = await dbManager.UpdateAsync(entity);
 
         return result != null;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        dbManager.Dispose();
+        _disposed = true;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+            return;
+
+        await dbManager.DisposeAsync();
+        _disposed = true;
     }
 }
