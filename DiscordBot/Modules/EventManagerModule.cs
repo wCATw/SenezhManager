@@ -51,10 +51,11 @@ public class EventManagerGroup(IEventManagerService eventManager) : InteractionM
         }
 
         [SlashCommand("список", "Выводит списком все существующие шаблоны событий.")]
-        public async Task ListTemplates(int event_template_id)
+        public async Task ListTemplates()
         {
             await DeferAsync(true);
 
+            var templates = await eventManager.GetEventTemplatesAsync(Context.Guild.Id);
 
             var embed = new EmbedBuilder();
 
