@@ -1,22 +1,21 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Discord;
 using Discord.Interactions;
 using DiscordBot.Database;
 using DiscordBot.Models.InteractionModels;
-using DiscordBot.Services.Interfaces;
 using DiscordBot.Services;
+using DiscordBot.Services.Interfaces;
 
 namespace DiscordBot.Modules;
 
 [Group("событие", "Менеджер событий.")]
-public class EventManagerGroup(IEventManagerService eventManager) : InteractionModuleBase<SocketInteractionContext>
+public class EventManagerGroup(IEventManagerService eventManager, PaginationService pagination) : InteractionModuleBase<SocketInteractionContext>
 {
 #region Шаблон
 
     [Group("шаблон", "Управление шаблонами событий.")]
-    public class EventManagerTemplateGroup(IEventManagerService eventManager)
+    public class EventManagerTemplateGroup(IEventManagerService eventManager, PaginationService pagination)
         : InteractionModuleBase<SocketInteractionContext>
     {
         [SlashCommand("создать", "Создает шаблон события через форму.")]
@@ -53,6 +52,7 @@ public class EventManagerGroup(IEventManagerService eventManager) : InteractionM
         public async Task ListTemplates()
         {
             await DeferAsync(true);
+            var message = await GetOriginalResponseAsync();
 
             var templates = await eventManager.GetEventTemplatesAsync(Context.Guild.Id);
             if (templates.Count == 0)
@@ -60,6 +60,20 @@ public class EventManagerGroup(IEventManagerService eventManager) : InteractionM
                 await FollowupAsync("Шаблоны не найдены.", ephemeral: true);
                 return;
             }
+
+            var elements = templates.Select(t => ($"ID:{t.Id}, {t.Title}", $"{t.Description}")).ToList();
+
+            var paginationTuple = pagination.CreatePagination(
+                                                              Context.User.Id,
+                                                              "Список шаблонов",
+                                                              elements,
+                                                              message
+                                                             );
+
+            await FollowupAsync(
+                                embed: paginationTuple.Contnet?.Embed.Build(),
+                                components: paginationTuple.Contnet?.Component.Build()
+                               );
         }
 
 #region Обработка форм

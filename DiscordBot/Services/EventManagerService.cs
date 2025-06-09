@@ -17,7 +17,7 @@ public class EventManagerService(IDbManagerService dbManager) : IEventManagerSer
         if (eventTemplateEnt.GuildId == null)
             return false;
 
-        eventTemplateEnt.Id = await ServicesHelper.GenerateNextIdForGuild<EventEntity>(dbManager.DbContext, eventTemplateEnt.GuildId.Value);
+        eventTemplateEnt.Id = await ServicesHelper.GenerateNextIdForGuild<EventTemplateEntity>(dbManager.DbContext, eventTemplateEnt.GuildId.Value);
 
         var result = await dbManager.AddAsync(eventTemplateEnt);
         return result != null;

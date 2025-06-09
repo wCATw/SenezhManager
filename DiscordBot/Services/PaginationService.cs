@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
 using Discord;
+using Discord.Net;
 using Discord.WebSocket;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -17,11 +21,11 @@ public class PaginationService(IMemoryCache memoryCache, DiscordSocketClient cli
         ulong creatorId,
         string title,
         List<(string Name, string Content)> elements,
-        (ulong GuildId, ulong ChannelId, ulong MessageId) messageTuple)
+        IUserMessage message)
     {
         var guid    = Guid.NewGuid();
         var pages   = SplitIntoPages(elements);
-        var session = new PaginationSession(title, creatorId, pages, messageTuple);
+        var session = new PaginationSession(title, creatorId, pages, message);
 
         memoryCache.Set(guid, session, new MemoryCacheEntryOptions
         {
@@ -30,24 +34,24 @@ public class PaginationService(IMemoryCache memoryCache, DiscordSocketClient cli
             {
                 new PostEvictionCallbackRegistration
                 {
-                    EvictionCallback = async void (_, value, _, _) =>
+                    EvictionCallback = void (_, value, _, _) =>
                     {
-                        try
+                        _ = Task.Run(async () =>
                         {
-                            if (value is not PaginationSession expiredSession) return;
-
-                            var guild = client.GetGuild(expiredSession.MessageTuple.GuildId);
-
-                            if (guild?.GetChannel(expiredSession.MessageTuple.ChannelId) is not ITextChannel channel)
-                                return;
-
-                            var message = await channel.GetMessageAsync(expiredSession.MessageTuple.MessageId);
-                            if (message is IUserMessage userMessage) await userMessage.DeleteAsync();
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex.ToString());
-                        }
+                            try
+                            {
+                                if (value is not PaginationSession evictedSession) return;
+                                await evictedSession.Message.DeleteAsync();
+                            }
+                            catch (HttpException ex) when (ex.HttpCode == HttpStatusCode.NotFound)
+                            {
+                                logger.LogWarning("Message already deleted during eviction.");
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "Error during session eviction cleanup.");
+                            }
+                        });
                     },
                     State = client
                 }
@@ -58,7 +62,7 @@ public class PaginationService(IMemoryCache memoryCache, DiscordSocketClient cli
         return (BuildPagination(guid), guid);
     }
 
-    public bool TryGetPagination(Guid guid, out PaginationSession? session)
+    public bool TryGetPagination(Guid guid, [NotNullWhen(true)] out PaginationSession? session)
     {
         return memoryCache.TryGetValue(guid, out session);
     }
@@ -70,18 +74,31 @@ public class PaginationService(IMemoryCache memoryCache, DiscordSocketClient cli
 
     public void ChangePage(Guid guid, int direction)
     {
-        if (!memoryCache.TryGetValue(guid, out PaginationSession? session)) return;
+        if (!TryGetPagination(guid, out var session))
+            return;
 
-        if (session == null) return;
-
-        var newIndex = session.PageIndex + direction;
-        if (newIndex >= 0 && newIndex < session.Pages.Length)
-            session.PageIndex = newIndex;
+        switch (direction)
+        {
+            case int.MinValue:
+                session.PageIndex = 0;
+                break;
+            case int.MaxValue:
+                session.PageIndex = session.Pages.Length - 1;
+                break;
+            default:
+            {
+                var newIndex = session.PageIndex + direction;
+                if (newIndex >= 0 && newIndex < session.Pages.Length)
+                    session.PageIndex = newIndex;
+                break;
+            }
+        }
     }
 
     public (EmbedBuilder Embed, ComponentBuilder Component)? BuildPagination(Guid guid)
     {
-        if (!memoryCache.TryGetValue(guid, out PaginationSession? session)) return null;
+        if (!TryGetPagination(guid, out var session))
+            return null;
 
         var embed     = new EmbedBuilder().WithTitle(session!.Title);
         var component = new ComponentBuilder();
@@ -90,9 +107,11 @@ public class PaginationService(IMemoryCache memoryCache, DiscordSocketClient cli
             embed.AddField(name, content);
 
         component
-            .WithButton("PREVIOUS", $"pagination_previous_page_button:{guid}", disabled: session.PageIndex <= 0)
-            .WithButton("NEXT", $"pagination_next_page_button:{guid}", disabled: session.PageIndex >= session.Pages.Length - 1)
-            .WithButton("CLOSE", $"pagination_close_button:{guid}");
+            .WithButton("⏮", $"pagination_button:first:{guid}", disabled: session.PageIndex <= 0)
+            .WithButton("◀", $"pagination_button:previous:{guid}", disabled: session.PageIndex <= 0)
+            .WithButton("▶", $"pagination_button:next:{guid}", disabled: session.PageIndex >= session.Pages.Length - 1)
+            .WithButton("⏭", $"pagination_button:last:{guid}", disabled: session.PageIndex >= session.Pages.Length - 1)
+            .WithButton("✖", $"pagination_button:close:{guid}", ButtonStyle.Danger);
 
         return (embed, component);
     }
@@ -108,9 +127,9 @@ public class PaginationService(IMemoryCache memoryCache, DiscordSocketClient cli
                .ToArray();
     }
 
-    public (ulong GuildId, ulong ChannelId, ulong MessageId)? GetSessionMetadataFallback(Guid guid)
+    public IUserMessage? GetSessionMetadataFallback(Guid guid)
     {
-        return !memoryCache.TryGetValue(guid, out PaginationSession? session) ? null : session?.MessageTuple;
+        return !memoryCache.TryGetValue(guid, out PaginationSession? session) ? null : session?.Message;
     }
 }
 
@@ -118,11 +137,11 @@ public class PaginationSession(
     string title,
     ulong creatorId,
     List<(string Name, string Content)>[] pages,
-    (ulong GuildId, ulong ChannelId, ulong MessageId) messageTuple)
+    IUserMessage message)
 {
     public string Title { get; } = title;
     public ulong CreatorId { get; } = creatorId;
-    public (ulong GuildId, ulong ChannelId, ulong MessageId) MessageTuple { get; } = messageTuple;
+    public IUserMessage Message { get; } = message;
     public List<(string Name, string Content)>[] Pages { get; } = pages;
     public int PageIndex { get; set; }
 }

@@ -4,37 +4,47 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using DiscordBot.Services;
+using Microsoft.Extensions.Logging;
 
 namespace DiscordBot.Modules;
 
-public class PaginationModule(PaginationService pagination, DiscordSocketClient client)
+public class PaginationModule(PaginationService pagination, DiscordSocketClient client, ILogger<PaginationModule> logger)
     : InteractionModuleBase<SocketInteractionContext>
 {
-    [ComponentInteraction("pagination_next_page_button:*", true)]
-    public async Task NextPageButton(string guidStr)
+    [ComponentInteraction("pagination_button:*:*", true)]
+    public async Task HandlePaginationButton(string action, string guidStr)
     {
         await DeferAsync();
-        await HandlePaginationInteraction(Guid.Parse(guidStr), +1);
-    }
 
-    [ComponentInteraction("pagination_previous_page_button:*", true)]
-    public async Task PreviousPageButton(string guidStr)
-    {
-        await DeferAsync();
-        await HandlePaginationInteraction(Guid.Parse(guidStr), -1);
-    }
+        var guid = Guid.Parse(guidStr);
 
-    [ComponentInteraction("pagination_close_button:*", true)]
-    public async Task CloseButton(string guidStr)
-    {
-        await DeferAsync();
-        await Context.Interaction.DeleteOriginalResponseAsync();
-        pagination.CloseSession(Guid.Parse(guidStr));
+        switch (action)
+        {
+            case "first":
+                await HandlePaginationInteraction(guid, int.MinValue);
+                break;
+            case "previous":
+                await HandlePaginationInteraction(guid, -1);
+                break;
+            case "next":
+                await HandlePaginationInteraction(guid, +1);
+                break;
+            case "last":
+                await HandlePaginationInteraction(guid, int.MaxValue);
+                break;
+            case "close":
+                await Context.Interaction.DeleteOriginalResponseAsync();
+                pagination.CloseSession(guid);
+                break;
+            default:
+                logger.LogError($"Unhandled action \"{action}\"!");
+                break;
+        }
     }
 
     private async Task HandlePaginationInteraction(Guid guid, int direction)
     {
-        var message = await GetInteractionMessage(guid);
+        var message = GetInteractionMessage(guid);
 
         if (message == null)
         {
@@ -52,21 +62,14 @@ public class PaginationModule(PaginationService pagination, DiscordSocketClient 
         });
     }
 
-    private async Task<IUserMessage?> GetInteractionMessage(Guid guid)
+    private IUserMessage? GetInteractionMessage(Guid guid)
     {
-        if (!pagination.TryGetPagination(guid, out var foundSession) || foundSession is null)
+        if (!pagination.TryGetPagination(guid, out var foundSession))
             return null;
 
         if (foundSession.CreatorId != Context.User.Id)
             return null;
 
-        var guild = client.GetGuild(foundSession.MessageTuple.GuildId);
-
-        if (guild?.GetChannel(foundSession.MessageTuple.ChannelId) is not ITextChannel channel)
-            return null;
-
-        var message = await channel.GetMessageAsync(foundSession.MessageTuple.MessageId);
-
-        return message is not IUserMessage userMessage ? null : userMessage;
+        return foundSession.Message;
     }
 }
