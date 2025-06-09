@@ -39,7 +39,6 @@ namespace DiscordBot.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<ulong?>("MessageId")
@@ -101,7 +100,6 @@ namespace DiscordBot.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
