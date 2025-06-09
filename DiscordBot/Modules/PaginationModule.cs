@@ -34,7 +34,9 @@ public class PaginationModule(PaginationService pagination, DiscordSocketClient 
 
     private async Task HandlePaginationInteraction(Guid guid, int direction)
     {
-        if (!TryValidateInteraction(guid, out var message))
+        var message = await GetInteractionMessage(guid);
+
+        if (message == null)
         {
             await Context.Interaction.DeleteOriginalResponseAsync();
             await FollowupAsync("Извините, пагинация устарела.", ephemeral: true);
@@ -42,49 +44,29 @@ public class PaginationModule(PaginationService pagination, DiscordSocketClient 
         }
 
         pagination.ChangePage(guid, direction);
-        var (embed, component) = pagination.BuildPagination(guid);
+        var content = pagination.BuildPagination(guid);
         await message!.ModifyAsync(msg =>
         {
-            msg.Embed      = embed.Build();
-            msg.Components = component.Build();
+            msg.Embed      = content?.Embed.Build();
+            msg.Components = content?.Component.Build();
         });
     }
 
-    private bool TryValidateInteraction(Guid guid, out IUserMessage? message)
+    private async Task<IUserMessage?> GetInteractionMessage(Guid guid)
     {
-        message = null;
-
         if (!pagination.TryGetPagination(guid, out var foundSession) || foundSession is null)
-        {
-            _ = Task.Run(async () =>
-            {
-                var tempSession = pagination.GetSessionMetadataFallback(guid);
-                if (tempSession is not null)
-                {
-                    var guild = client.GetGuild(tempSession.Value.GuildId);
-
-                    if (guild?.GetChannel(tempSession.Value.ChannelId) is not ITextChannel textChannel) return;
-
-                    var msg = await textChannel.GetMessageAsync(tempSession.Value.MessageId);
-                    if (msg is IUserMessage userMessage)
-                        await userMessage.DeleteAsync();
-                }
-            });
-
-            return false;
-        }
+            return null;
 
         if (foundSession.CreatorId != Context.User.Id)
-            return false;
+            return null;
 
         var guild = client.GetGuild(foundSession.MessageTuple.GuildId);
 
-        if (guild?.GetChannel(foundSession.MessageTuple.ChannelId) is not ITextChannel channel) return false;
+        if (guild?.GetChannel(foundSession.MessageTuple.ChannelId) is not ITextChannel channel)
+            return null;
 
-        var msg = channel.GetMessageAsync(foundSession.MessageTuple.MessageId).Result;
-        if (msg is not IUserMessage userMsg) return false;
+        var message = await channel.GetMessageAsync(foundSession.MessageTuple.MessageId);
 
-        message = userMsg;
-        return true;
+        return message is not IUserMessage userMessage ? null : userMessage;
     }
 }

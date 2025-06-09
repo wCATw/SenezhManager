@@ -3,9 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using DiscordBot.Database;
 using DiscordBot.Services;
-using DiscordBot.Services;
 using DiscordBot.Services.Interfaces;
-using DiscordBot.Services;
 using DiscordBot.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -49,12 +47,14 @@ internal static class Startup
                        .ConfigureCommands(options => { })
                        .ConfigureServices((context, services) =>
                        {
+                           services.AddMemoryCache();
+
                            services.AddScoped<ISettingsManagerService, SettingsManagerService>();
                            services.AddScoped<IDbManagerService, DbManagerService>();
                            services.AddScoped<IEventManagerService, EventManagerService>();
+                           services.AddScoped<PaginationService>();
 
                            services.AddSingleton<CommandHandlerService>();
-                           services.AddSingleton<PaginationService>();
 
                            services.AddDbContext<AppDbContext>(options => { options.UseSqlite("Data Source=data/bot.db"); });
 

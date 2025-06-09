@@ -35,7 +35,10 @@ public class TestModule(ILogger<TestModule> logger, PaginationService pagination
                                                           (guildChannel.GuildId, guildChannel.Id, message.Id)
                                                          );
 
-        await FollowupAsync(embed: paginationTuple.Embed.Build(), components: paginationTuple.Component.Build());
+        await FollowupAsync(
+                            embed: paginationTuple.Contnet?.Embed.Build(),
+                            components: paginationTuple.Contnet?.Component.Build()
+                           );
     }
 }
 #endif

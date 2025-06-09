@@ -2,56 +2,91 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Discord;
+using Discord.WebSocket;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace DiscordBot.Services;
 
-public class PaginationService
+public class PaginationService(IMemoryCache memoryCache, DiscordSocketClient client, ILogger<PaginationService> logger)
 {
     private const int PageSize = 5;
-    private readonly Dictionary<Guid, PaginationSession> _sessions = new();
+    private readonly TimeSpan SessionTimeout = TimeSpan.FromMinutes(5);
 
-    public (EmbedBuilder Embed, ComponentBuilder Component) CreatePagination(
+    public ((EmbedBuilder Embed, ComponentBuilder Component)? Contnet, Guid Guid) CreatePagination(
         ulong creatorId,
         string title,
         List<(string Name, string Content)> elements,
         (ulong GuildId, ulong ChannelId, ulong MessageId) messageTuple)
     {
-        var guid  = Guid.NewGuid();
-        var pages = SplitIntoPages(elements);
-        _sessions[guid] = new PaginationSession(title, creatorId, pages)
+        var guid    = Guid.NewGuid();
+        var pages   = SplitIntoPages(elements);
+        var session = new PaginationSession(title, creatorId, pages, messageTuple);
+
+        memoryCache.Set(guid, session, new MemoryCacheEntryOptions
         {
-            MessageTuple = messageTuple
-        };
-        return BuildPagination(guid);
+            SlidingExpiration = SessionTimeout,
+            PostEvictionCallbacks =
+            {
+                new PostEvictionCallbackRegistration
+                {
+                    EvictionCallback = async void (_, value, _, _) =>
+                    {
+                        try
+                        {
+                            if (value is not PaginationSession expiredSession) return;
+
+                            var guild = client.GetGuild(expiredSession.MessageTuple.GuildId);
+
+                            if (guild?.GetChannel(expiredSession.MessageTuple.ChannelId) is not ITextChannel channel)
+                                return;
+
+                            var message = await channel.GetMessageAsync(expiredSession.MessageTuple.MessageId);
+                            if (message is IUserMessage userMessage) await userMessage.DeleteAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex.ToString());
+                        }
+                    },
+                    State = client
+                }
+            }
+        });
+
+
+        return (BuildPagination(guid), guid);
     }
 
-    public bool TryGetPagination(Guid guid, out PaginationSession? pagination)
+    public bool TryGetPagination(Guid guid, out PaginationSession? session)
     {
-        return _sessions.TryGetValue(guid, out pagination);
+        return memoryCache.TryGetValue(guid, out session);
     }
 
     public void CloseSession(Guid guid)
     {
-        _sessions.Remove(guid);
+        memoryCache.Remove(guid);
     }
 
     public void ChangePage(Guid guid, int direction)
     {
-        if (!_sessions.TryGetValue(guid, out var session)) return;
+        if (!memoryCache.TryGetValue(guid, out PaginationSession? session)) return;
 
-        var newIndex                                                            = (int)session.PageIndex + direction;
-        if (newIndex >= 0 && newIndex < session.Pages.Length) session.PageIndex = (uint)newIndex;
+        if (session == null) return;
+
+        var newIndex = session.PageIndex + direction;
+        if (newIndex >= 0 && newIndex < session.Pages.Length)
+            session.PageIndex = newIndex;
     }
 
-    public (EmbedBuilder Embed, ComponentBuilder Component) BuildPagination(Guid guid)
+    public (EmbedBuilder Embed, ComponentBuilder Component)? BuildPagination(Guid guid)
     {
-        if (!_sessions.TryGetValue(guid, out var session))
-            throw new KeyNotFoundException("Session not found");
+        if (!memoryCache.TryGetValue(guid, out PaginationSession? session)) return null;
 
-        var embed     = new EmbedBuilder().WithTitle(session.Title);
+        var embed     = new EmbedBuilder().WithTitle(session!.Title);
         var component = new ComponentBuilder();
 
-        foreach (var (name, content) in session.Pages[session.PageIndex])
+        foreach (var (name, content) in session!.Pages[session.PageIndex])
             embed.AddField(name, content);
 
         component
@@ -75,18 +110,19 @@ public class PaginationService
 
     public (ulong GuildId, ulong ChannelId, ulong MessageId)? GetSessionMetadataFallback(Guid guid)
     {
-        if (_sessions.TryGetValue(guid, out var session))
-            return session.MessageTuple;
-
-        return null;
+        return !memoryCache.TryGetValue(guid, out PaginationSession? session) ? null : session?.MessageTuple;
     }
 }
 
-public class PaginationSession(string title, ulong creatorId, List<(string Name, string Content)>[] pages)
+public class PaginationSession(
+    string title,
+    ulong creatorId,
+    List<(string Name, string Content)>[] pages,
+    (ulong GuildId, ulong ChannelId, ulong MessageId) messageTuple)
 {
-    public string Title { get; set; } = title;
-    public ulong CreatorId { get; set; } = creatorId;
-    public (ulong GuildId, ulong ChannelId, ulong MessageId) MessageTuple { get; set; }
-    public List<(string Name, string Content)>[] Pages { get; set; } = pages;
-    public uint PageIndex { get; set; } = 0;
+    public string Title { get; } = title;
+    public ulong CreatorId { get; } = creatorId;
+    public (ulong GuildId, ulong ChannelId, ulong MessageId) MessageTuple { get; } = messageTuple;
+    public List<(string Name, string Content)>[] Pages { get; } = pages;
+    public int PageIndex { get; set; }
 }
