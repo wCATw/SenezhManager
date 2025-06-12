@@ -23,9 +23,6 @@ namespace DiscordBot.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<ulong?>("ChannelId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTime?>("CreationDateTime")
                         .HasColumnType("TEXT");
 
@@ -42,6 +39,9 @@ namespace DiscordBot.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<ulong?>("MessageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool?>("Notified")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
@@ -119,7 +119,13 @@ namespace DiscordBot.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<ulong?>("EventNotificationChannelId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<ulong?>("GuildId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong?>("ScheduleMessageId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("InternalId");

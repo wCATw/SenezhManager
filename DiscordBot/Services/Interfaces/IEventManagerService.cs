@@ -125,4 +125,14 @@ public interface IEventManagerService : IDisposable, IAsyncDisposable
     /// <param name="eventRepeatId"></param>
     /// <returns></returns>
     Task<bool> TryDeleteEventRepeatabilityAsync(ulong guildId, int eventRepeatId);
+
+    /// <summary>
+    /// </summary>
+    /// <returns></returns>
+    Task RoutineCheck(SettingsEntity? targetSettings = null);
+
+    /// <summary>
+    /// </summary>
+    /// <returns></returns>
+    Task<bool> InitChannel(ulong guildId);
 }

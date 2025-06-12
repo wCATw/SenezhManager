@@ -90,8 +90,8 @@ public interface IEventData
 public class EventEntity : GuildAndIdBaseEntity, IEventData
 {
     public DateTime? EventDateTime { get; set; }
-    public ulong? ChannelId { get; set; }
     public ulong? MessageId { get; set; }
+    public bool? Notified { get; set; }
     public string? Title { get; set; }
     public string? Description { get; set; }
     public DateTime? CreationDateTime { get; set; }
@@ -121,6 +121,11 @@ public class EventTemplateEntity : GuildAndIdBaseEntity, IEventData
 [Table("settings")]
 public class SettingsEntity : GuildBaseEntity
 {
+    [Display(Name = "ID Канала оповещений и расписания событий")]
+    public ulong? EventNotificationChannelId { get; set; }
+
+    [Display(Name = "HIDDEN")]
+    public ulong? ScheduleMessageId { get; set; }
 }
 
 #endregion

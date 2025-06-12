@@ -18,7 +18,7 @@ public static class ServicesHelper
         foreach (var prop in properties)
         {
             var displayAttr = prop.GetCustomAttribute<DisplayAttribute>();
-            if (!string.IsNullOrEmpty(displayAttr?.Name) && displayAttr.Name.Contains("SYSTEM", StringComparison.OrdinalIgnoreCase))
+            if (prop.IsSystem())
                 continue;
 
             var newValue = prop.GetValue(inputEntity);

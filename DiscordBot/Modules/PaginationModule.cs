@@ -2,13 +2,12 @@ using System;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
-using Discord.WebSocket;
 using DiscordBot.Services;
 using Microsoft.Extensions.Logging;
 
 namespace DiscordBot.Modules;
 
-public class PaginationModule(PaginationService pagination, DiscordSocketClient client, ILogger<PaginationModule> logger)
+public class PaginationModule(PaginationService pagination, ILogger<PaginationModule> logger)
     : InteractionModuleBase<SocketInteractionContext>
 {
     [ComponentInteraction("pagination_button:*:*", true)]
@@ -55,10 +54,10 @@ public class PaginationModule(PaginationService pagination, DiscordSocketClient 
 
         pagination.ChangePage(guid, direction);
         var content = pagination.BuildPagination(guid);
-        await message!.ModifyAsync(msg =>
+        await message.ModifyAsync(msg =>
         {
-            msg.Embed      = content?.Embed.Build();
-            msg.Components = content?.Component.Build();
+            msg.Embeds     = content?.Embeds;
+            msg.Components = content?.Component;
         });
     }
 
@@ -67,7 +66,7 @@ public class PaginationModule(PaginationService pagination, DiscordSocketClient 
         if (!pagination.TryGetPagination(guid, out var foundSession))
             return null;
 
-        if (foundSession.CreatorId != Context.User.Id)
+        if (foundSession.Creator != Context.User)
             return null;
 
         return foundSession.Message;

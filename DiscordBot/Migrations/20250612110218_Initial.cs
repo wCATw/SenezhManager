@@ -36,11 +36,11 @@ namespace DiscordBot.Migrations
                     InternalId = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     EventDateTime = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    ChannelId = table.Column<ulong>(type: "INTEGER", nullable: true),
                     MessageId = table.Column<ulong>(type: "INTEGER", nullable: true),
                     Title = table.Column<string>(type: "TEXT", nullable: true),
                     Description = table.Column<string>(type: "TEXT", nullable: true),
                     CreationDateTime = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    Notified = table.Column<bool>(type: "INTEGER", nullable: true),
                     GuildId = table.Column<ulong>(type: "INTEGER", nullable: true),
                     Id = table.Column<int>(type: "INTEGER", nullable: true)
                 },
@@ -55,6 +55,8 @@ namespace DiscordBot.Migrations
                 {
                     InternalId = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    EventNotificationChannelId = table.Column<ulong>(type: "INTEGER", nullable: true),
+                    ScheduleMessageId = table.Column<ulong>(type: "INTEGER", nullable: true),
                     GuildId = table.Column<ulong>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>

@@ -11,9 +11,16 @@ namespace DiscordBot.Utils;
 
 internal static class MemberInfoExtensions
 {
-    public static bool IsSystemField(this MemberInfo member)
+    public static bool IsHidden(this MemberInfo member)
     {
-        return member.GetCustomAttribute<DisplayAttribute>()?.Name == "SYSTEM";
+        var display = member.GetCustomAttribute<DisplayAttribute>();
+        return display?.Name is "SYSTEM" or "HIDDEN";
+    }
+
+    public static bool IsSystem(this MemberInfo member)
+    {
+        var display = member.GetCustomAttribute<DisplayAttribute>();
+        return display?.Name is "SYSTEM";
     }
 }
 

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using DiscordBot.Database;
 using DiscordBot.Services.Interfaces;
 using DiscordBot.Utils;
@@ -25,7 +26,7 @@ public class SettingsManagerService(IDbManagerService dbManager) : ISettingsMana
     public async Task<bool> TryUpdateSettingsAsync(SettingsEntity settingsEnt)
     {
         if (settingsEnt.GuildId == null)
-            return false;
+            throw new ArgumentException("GuildId is null!");
 
         var entity = await GetSettingsAsync(settingsEnt.GuildId.Value, false);
 

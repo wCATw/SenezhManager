@@ -17,15 +17,15 @@ public class PaginationService(IMemoryCache memoryCache, DiscordSocketClient cli
     private const int PageSize = 5;
     private readonly TimeSpan SessionTimeout = TimeSpan.FromMinutes(5);
 
-    public ((EmbedBuilder Embed, ComponentBuilder Component)? Contnet, Guid Guid) CreatePagination(
-        ulong creatorId,
+    public ((Embed[] Embeds, MessageComponent Component)? Contnet, Guid Guid) CreatePagination(
+        IUser creator,
         string title,
         List<(string Name, string Content)> elements,
         IUserMessage message)
     {
         var guid    = Guid.NewGuid();
         var pages   = SplitIntoPages(elements);
-        var session = new PaginationSession(title, creatorId, pages, message);
+        var session = new PaginationSession(title, creator, pages, message);
 
         memoryCache.Set(guid, session, new MemoryCacheEntryOptions
         {
@@ -95,25 +95,38 @@ public class PaginationService(IMemoryCache memoryCache, DiscordSocketClient cli
         }
     }
 
-    public (EmbedBuilder Embed, ComponentBuilder Component)? BuildPagination(Guid guid)
+    public (Embed[] Embeds, MessageComponent Component)? BuildPagination(Guid guid)
     {
         if (!TryGetPagination(guid, out var session))
             return null;
 
-        var embed     = new EmbedBuilder().WithTitle(session!.Title);
-        var component = new ComponentBuilder();
+        var         mainEmbedBuilder = new EmbedBuilder().WithTitle(session!.Title);
+        var         componentBuilder = new ComponentBuilder();
+        List<Embed> embeds           = [];
+
+
+        mainEmbedBuilder.WithAuthor(session.Creator);
+        mainEmbedBuilder.WithFooter($"Страница {session.PageIndex + 1}/{session.Pages.Length}");
+        embeds.Add(mainEmbedBuilder.Build());
 
         foreach (var (name, content) in session!.Pages[session.PageIndex])
-            embed.AddField(name, content);
+        {
+            var embedBuilder = new EmbedBuilder();
 
-        component
+            embedBuilder.WithTitle(name);
+            embedBuilder.WithDescription(content);
+
+            embeds.Add(embedBuilder.Build());
+        }
+
+        componentBuilder
             .WithButton("⏮", $"pagination_button:first:{guid}", disabled: session.PageIndex <= 0)
             .WithButton("◀", $"pagination_button:previous:{guid}", disabled: session.PageIndex <= 0)
             .WithButton("▶", $"pagination_button:next:{guid}", disabled: session.PageIndex >= session.Pages.Length - 1)
             .WithButton("⏭", $"pagination_button:last:{guid}", disabled: session.PageIndex >= session.Pages.Length - 1)
             .WithButton("✖", $"pagination_button:close:{guid}", ButtonStyle.Danger);
 
-        return (embed, component);
+        return (embeds.ToArray(), componentBuilder.Build());
     }
 
     private static List<(string Name, string Content)>[] SplitIntoPages(List<(string Name, string Content)> elements)
@@ -135,12 +148,12 @@ public class PaginationService(IMemoryCache memoryCache, DiscordSocketClient cli
 
 public class PaginationSession(
     string title,
-    ulong creatorId,
+    IUser creator,
     List<(string Name, string Content)>[] pages,
     IUserMessage message)
 {
     public string Title { get; } = title;
-    public ulong CreatorId { get; } = creatorId;
+    public IUser Creator { get; } = creator;
     public IUserMessage Message { get; } = message;
     public List<(string Name, string Content)>[] Pages { get; } = pages;
     public int PageIndex { get; set; }

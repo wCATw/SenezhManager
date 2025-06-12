@@ -17,7 +17,7 @@ public class SettingsGroup(ISettingsManagerService settingsManager) : Interactio
     {
         await DeferAsync(true);
 
-        var settings = await settingsManager.GetSettingsAsync(Context.Guild.Id) ?? new SettingsEntity();
+        var settings = await settingsManager.GetSettingsAsync(Context.Guild.Id);
 
         var embedBuilder = new EmbedBuilder()
                            .WithTitle("Текущие настройки")
@@ -53,7 +53,7 @@ public class SettingsGroup(ISettingsManagerService settingsManager) : Interactio
         var entity = new SettingsEntity { GuildId = Context.Guild.Id };
 
         var prop = typeof(SettingsEntity).GetProperty(option);
-        if (prop == null || prop.Name == nameof(SettingsEntity.GuildId))
+        if (prop == null || prop.IsHidden())
         {
             await FollowupAsync($"Поле `{option}` не найдено или его нельзя изменять.", ephemeral: true);
             return;

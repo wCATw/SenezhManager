@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DiscordBot.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250609182015_Initial")]
+    [Migration("20250612110218_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -24,9 +24,6 @@ namespace DiscordBot.Migrations
                 {
                     b.Property<int>("InternalId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong?>("ChannelId")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("CreationDateTime")
@@ -45,6 +42,9 @@ namespace DiscordBot.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<ulong?>("MessageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool?>("Notified")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
@@ -122,7 +122,13 @@ namespace DiscordBot.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<ulong?>("EventNotificationChannelId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<ulong?>("GuildId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong?>("ScheduleMessageId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("InternalId");
